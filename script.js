@@ -107,7 +107,8 @@ const ZONE_DATA = [
 
 function gs(){try{return JSON.parse(localStorage.getItem('fitcore')||'{}')}catch{return {}}}
 function ss(d){localStorage.setItem('fitcore',JSON.stringify(d))}
-function todayKey(){return new Date().toISOString().split('T')[0]}
+function dateToKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayKey(){return dateToKey(new Date());}
 function getDayName(){return DAY_JS_MAP[new Date().getDay()]}
 
 function getSet(dateKey,exId,idx){
@@ -176,7 +177,6 @@ function saveExNote(dateKey,exId,field,val){
   ss(d);triggerSave();
 }
 
-// ── Programme override par date ──────────────────────────────────────────────
 function getDayProgramOverride(dateKey){
   const d=gs();return (d.dayProgram&&d.dayProgram[dateKey])||null;
 }
@@ -239,7 +239,6 @@ function resetDayProgram(dateKey){
   renderToday();
   showToast('↩️ Programme par défaut rétabli');
 }
-// ────────────────────────────────────────────────────────────────────────────
 
 function calc1RM(weight,reps){
   if(!weight||!reps||reps<=0)return 0;
@@ -313,7 +312,7 @@ function getWeeklyTonnageHistory(exId){
     const dt=new Date(dateKey+'T12:00:00');
     const dow=dt.getDay();
     const monDt=new Date(dt);monDt.setDate(dt.getDate()-(dow===0?6:dow-1));
-    const wk=monDt.toISOString().split('T')[0];
+    const wk=dateToKey(monDt);
     if(!weekMap[wk])weekMap[wk]=0;
     sets.forEach(s=>{weekMap[wk]+=(parseFloat(s.weight)||0)*(parseFloat(s.reps)||10);});
   });
@@ -356,7 +355,7 @@ function renderHeatmap(){
     html+=`<div class="heatmap-week"><div class="hm-month-lbl">${monthLabel}</div>`;
     for(let dw=0;dw<7;dw++){
       const dt=new Date(startDate);dt.setDate(startDate.getDate()+w*7+dw);
-      const key=dt.toISOString().split('T')[0];
+      const key=dateToKey(dt);
       const isFuture=dt>today;
       const t=dayTonnage[key]||0;
       const isActive=active.includes(key);
@@ -435,7 +434,7 @@ function showReadinessPopup(){
   const pseudo=getProfile().pseudo||'Athlète';
   const html=`<div class="modal-overlay" id="readinessModal">
     <div class="modal-box">
-      <div class="modal-hdr"><div class="modal-title">💪 Check-in Séance</div><button class="drawer-close" onclick="closeModal()">✕</button></div>
+      <div class="modal-hdr"><div class="modal-title">💪 Check-in Seance</div><button class="drawer-close" onclick="closeModal()">✕</button></div>
       <div style="font-size:12px;color:var(--dim);margin-bottom:20px">Salut <b style="color:var(--green)">${pseudo}</b> ! Comment tu te sens aujourd'hui ?</div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:16px;text-align:center;font-family:var(--fm)">1 = Très mauvais &nbsp;·&nbsp; 5 = Parfait</div>
       <div class="ready-item">
@@ -453,7 +452,7 @@ function showReadinessPopup(){
         <div class="ready-scale-labels"><span>😩 Courbaturé</span><span>✅ Frais</span></div>
         <div class="ready-stars" id="rs-soreness">${makeStars('soreness',3)}</div>
       </div>
-      <button class="run-done-btn" style="margin-top:20px;font-size:14px;font-family:var(--fh);letter-spacing:1px" onclick="submitReadiness()">Démarrer 🚀</button>
+      <button class="run-done-btn" style="margin-top:20px;font-size:14px;font-family:var(--fh);letter-spacing:1px" onclick="submitReadiness()">Demarrer 🚀</button>
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend',html);
@@ -517,7 +516,7 @@ function computeStreak(){
   const today=new Date();today.setHours(0,0,0,0);
   let streak=0,cur=new Date(today);
   while(true){
-    const key=cur.toISOString().split('T')[0];
+    const key=dateToKey(cur);
     if(active.includes(key)){streak++;cur.setDate(cur.getDate()-1);}
     else{if(cur.getTime()===today.getTime()){cur.setDate(cur.getDate()-1);}else break;}
   }
@@ -529,7 +528,7 @@ function computeReg(){
   let count=0;
   for(let i=0;i<7;i++){
     const d=new Date();d.setDate(d.getDate()-i);d.setHours(0,0,0,0);
-    if(active.includes(d.toISOString().split('T')[0]))count++;
+    if(active.includes(dateToKey(d)))count++;
   }
   return Math.round(count/7*100);
 }
@@ -628,7 +627,7 @@ function getMuscleVolumes(){
   if(!d.workouts)return MUSCLE_KEYS.map(()=>0);
   for(let i=0;i<7;i++){
     const dt=new Date();dt.setDate(dt.getDate()-i);
-    const key=dt.toISOString().split('T')[0];
+    const key=dateToKey(dt);
     const dayName=DAY_JS_MAP[dt.getDay()];
     const prog=PROGRAM[dayName];
     if(!prog||!d.workouts[key])continue;
@@ -893,7 +892,7 @@ function renderWeek(){
     const isToday=dayName===todayName;
     const today=new Date();today.setHours(0,0,0,0);
     const d=new Date(today);d.setDate(today.getDate()+(prog.day-today.getDay()));
-    const dateKey=d.toISOString().split('T')[0];
+    const dateKey=dateToKey(d);
     const p=getDayProgress(dateKey,dayName);
     let typeTag='';
     if(prog.type==='gym')typeTag='<span style="color:var(--green);font-size:10px">🏋️ Salle</span>';
@@ -954,11 +953,11 @@ function renderStats(){
     <div class="stat-card"><div class="stat-v" style="color:var(--green)">${computeReg()}%</div><div class="stat-l">📈 Régularité 7j</div></div>
   </div>
   <div class="card" style="margin-bottom:12px">
-    <div class="stitle">📅 Calendrier d'activité</div>
+    <div class="stitle">📅 Calendrier d'activite</div>
     ${renderHeatmap()}
   </div>
   <div class="card" style="margin-bottom:12px">
-    <div class="stitle">📈 Évolution des charges & Volume</div>
+    <div class="stitle">📈 Evolution des charges et Volume</div>
     <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
       <select id="exSelect" class="si" style="flex:1;text-align:left;font-size:12px;padding:8px" onchange="renderWeightChart()">
         ${exOptions}
@@ -973,7 +972,7 @@ function renderStats(){
     <div id="weightChartEmpty" class="empty" style="display:none">Aucune donnée pour cet exercice.<br>Lance ta première séance !</div>
   </div>
   <div class="radar-wrap">
-    <div class="stitle">Répartition Musculaire <span style="font-size:10px;color:var(--dim)">(7 derniers jours)</span></div>
+    <div class="stitle">Repartition Musculaire <span style="font-size:10px;color:var(--dim)">(7 derniers jours)</span></div>
     <canvas id="radarChart" height="250"></canvas>
   </div>
   <div class="card" style="margin-bottom:12px">
@@ -1103,15 +1102,15 @@ function renderCardio(){
     </div>`;
   });
   const runDays=[
-    {key:'mardi', icon:'⚡',name:'Mardi — Fractionné HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',   detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
-    {key:'jeudi', icon:'🏃',name:'Jeudi — Tempo 5km',          desc:'Allure soutenue sur 5km pour développer ton seuil lactique.',detail:'5km continu, légèrement inconfortable mais constant'},
+    {key:'mardi', icon:'⚡',name:'Mardi — Fractionne HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',   detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
+    {key:'jeudi', icon:'🏃',name:'Jeudi — Tempo',          desc:'Allure soutenue sur 5km pour développer ton seuil lactique.',detail:'5km continu, légèrement inconfortable mais constant'},
     {key:'dimanche',icon:'🌿',name:'Dimanche — Sortie Longue', desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',    detail:'45–60min très lent, conversation possible'},
   ];
   let runCardsHtml='';
   runDays.forEach(rd=>{
     const today=new Date();today.setHours(0,0,0,0);
     const d=new Date(today);d.setDate(today.getDate()+(PROGRAM[rd.key].day-today.getDay()));
-    const dateKey=d.toISOString().split('T')[0];
+    const dateKey=dateToKey(d);
     const rl=getRunLog(dateKey);
     runCardsHtml+=`<div class="run-card">
       <div class="run-title">${rd.icon} ${rd.name}</div>
@@ -1130,7 +1129,7 @@ function renderCardio(){
       </div>
       <button class="run-done-btn${rl.done?' done':''}" id="crunBtn-${dateKey}"
         onclick="toggleRunDone2('${dateKey}')">
-        ${rl.done?'✅ Séance Running Terminée !':'Marquer comme faite'}
+        ${rl.done?'✅ Séance Running Terminee !':'Marquer comme faite'}
       </button>
     </div>`;
   });
@@ -1279,7 +1278,7 @@ function renderProfile(){
     <div style="font-size:10px;color:var(--muted);margin-top:2px">au total sur tous tes entraînements</div>
   </div>`:''}
 
-  <div class="stitle">⚙️ Mes Données</div>
+  <div class="stitle">⚙️ Mes Donnees</div>
   <div class="card" style="margin-bottom:12px">
     <div class="bw-row" style="margin-bottom:14px">
       <div class="bw-lbl">⚖️ Poids de corps</div>
@@ -1298,10 +1297,10 @@ function renderProfile(){
   <div class="stitle">⚠️ Zone Danger</div>
   <div class="card danger-card">
     <div style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.5">
-      Réinitialise <b>toutes</b> tes données : séances, records, tonnage, streak, check-ins.<br>
+      Réinitialise <b>TOUTES</b> tes données : séances, records, tonnage, streak, check-ins.<br>
       <span style="color:var(--red);font-size:11px">⚠️ Cette action est irréversible.</span>
     </div>
-    <button class="btn-danger" onclick="confirmReset()">🗑️ Réinitialiser toutes les données</button>
+    <button class="btn-danger" onclick="confirmReset()">🗑️ Reinitialiser toutes les données</button>
   </div>`;
 }
 
@@ -1389,6 +1388,14 @@ function init(){
   renderWeek();
   updateStreak();
   updateReg();
+
+  document.addEventListener('pointerdown',function(e){
+    const pop=document.getElementById('prPopup');
+    if(pop&&pop.classList.contains('show')&&!pop.contains(e.target)){
+      pop.classList.remove('show');
+      clearTimeout(_prTimer);
+    }
+  });
 }
 
 init();
