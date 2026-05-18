@@ -87,8 +87,8 @@ const PROGRAM = {
   lundi:    {label:"Pecs & Triceps", icon:"💪", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
   mardi:    {label:"Dos & Épaules",  icon:"🏋️", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
   mercredi: {label:"Jambes",         icon:"🦵", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
-  jeudi:    {label:"Épaules",        icon:"🔥", fullName:"Épaules & Trapèzes",    type:"gym", exercises: EX_JEUDI},
-  vendredi: {label:"Rappel",         icon:"💥", fullName:"Rappel Haut du Corps",  type:"gym", exercises: EX_VENDREDI},
+  jeudi:    {label:"Pecs & Triceps", icon:"💪", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_JEUDI},
+  vendredi: {label:"Dos & Épaules",  icon:"🏋️", fullName:"Dos & Épaules",          type:"gym", exercises: EX_VENDREDI},
   samedi:   {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
   dimanche: {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
 };
