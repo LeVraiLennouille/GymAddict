@@ -83,17 +83,50 @@ const EX_VENDREDI = [
   {id:"etirement_full_2", name:"Étirement Biceps & Triceps", sets:1, repsLabel:"30 sec / groupe", defaultReps:30, type:"etirement", muscles:["biceps", "triceps"], restSec:0, isTime:true}
 ];
 
+const EX_ABDOS = [
+  {id:"planche_ab",      name:"Planche",                  sets:4, repsLabel:"30–60 sec",      defaultReps:45, type:"isolation", muscles:["abdos"], restSec:60, isTime:true},
+  {id:"crunchs",         name:"Crunchs",                  sets:4, repsLabel:"20–25 reps",     defaultReps:20, type:"isolation", muscles:["abdos"], restSec:60},
+  {id:"crunchs_obliques",name:"Crunchs Obliques",         sets:3, repsLabel:"15–20 reps / côté",defaultReps:15,type:"isolation", muscles:["abdos"], restSec:60},
+  {id:"relevés_jambes",  name:"Relevés de Jambes",        sets:3, repsLabel:"15–20 reps",     defaultReps:15, type:"compound",  muscles:["abdos"], restSec:75},
+  {id:"mountain_climbers",name:"Mountain Climbers",       sets:3, repsLabel:"30 sec",         defaultReps:30, type:"isolation", muscles:["abdos"], restSec:60, isTime:true},
+  {id:"russian_twists",  name:"Russian Twists (lest)",    sets:3, repsLabel:"20 reps",        defaultReps:20, type:"isolation", muscles:["abdos"], restSec:60},
+  {id:"ab_wheel",        name:"Roue Abdominale",          sets:3, repsLabel:"8–12 reps",      defaultReps:10, type:"compound",  muscles:["abdos"], restSec:90},
+];
+
 const PROGRAM = {
-  lundi: {label:"Lundi", day:1, icon:"💪", fullName:"Pectoraux & Triceps", type:"gym", exercises: EX_LUNDI},
-  mardi: {label:"Mardi", day:2, icon:"🏋️", fullName:"Dos & Épaules", type:"gym+run", exercises: EX_MARDI, running:
-    {name:"🏃 Run 5km",steps:["🎯 5km : allure normale","💨 Légèrement inconfortable mais constant","⏱️ Maintiens le rythme jusqu'au bout"],targetDuration:35,targetDistance:5}},
-  mercredi: {label:"Mercredi", day:3, icon:"🎯", fullName:"Core & Épaules", type:"gym", exercises: EX_MERCREDI},
-  jeudi: {label:"Jeudi", day:4, icon:"🔥", fullName:"Push & Pull — Polyvalent", type:"gym+run",exercises: EX_JEUDI, running:
-    {name:"🏃 Run 5km",steps:["🎯 5km : allure normale","💨 Légèrement inconfortable mais constant","⏱️ Maintiens le rythme jusqu'au bout"],targetDuration:35,targetDistance:5}},
-  vendredi: {label:"Vendredi", day:5, icon:"💥", fullName:"Dos & Épaules", type:"gym", exercises: EX_VENDREDI},
-  samedi: {label:"Samedi", day:6, icon:"😴", fullName:"Repos Total", type:"rest", exercises:[]},
-  dimanche: {label:"Dimanche", day:0, icon:"🌅", fullName:"Sortie Longue (Optionnel)", type:"run", exercises:[]},
+  pecs_tri: {label:"Pecs & Triceps", icon:"💪", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
+  dos_ep:   {label:"Dos & Épaules",  icon:"🏋️", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
+  abdos:    {label:"Abdos",          icon:"🎯", fullName:"Abdominaux & Core",      type:"gym", exercises: EX_ABDOS},
+  jambes:   {label:"Jambes",         icon:"🦵", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
+  epaules:  {label:"Épaules",        icon:"🔥", fullName:"Épaules & Trapèzes",    type:"gym", exercises: EX_JEUDI},
+  rappel:   {label:"Rappel",         icon:"💥", fullName:"Rappel Haut du Corps",  type:"gym", exercises: EX_VENDREDI},
+  repos:    {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
+
+  lundi:    {label:"Pecs & Triceps", icon:"💪", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
+  mardi:    {label:"Dos & Épaules",  icon:"🏋️", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
+  mercredi: {label:"Jambes",         icon:"🦵", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
+  jeudi:    {label:"Épaules",        icon:"🔥", fullName:"Épaules & Trapèzes",    type:"gym", exercises: EX_JEUDI},
+  vendredi: {label:"Rappel",         icon:"💥", fullName:"Rappel Haut du Corps",  type:"gym", exercises: EX_VENDREDI},
+  samedi:   {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
+  dimanche: {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
 };
+
+const PROGRAM_PICKER_KEYS = ['pecs_tri','dos_ep','abdos','jambes','epaules','rappel','repos'];
+const WEEKLY_SUGGESTIONS = {
+  lundi:    'pecs_tri',
+  mardi:    'dos_ep',
+  mercredi: 'abdos',
+  jeudi:    'pecs_tri',
+  vendredi: 'dos_ep',
+  samedi:   'repos',
+  dimanche: 'repos',
+};
+
+const DAY_LABELS = {
+  lundi:'Lundi', mardi:'Mardi', mercredi:'Mercredi',
+  jeudi:'Jeudi', vendredi:'Vendredi', samedi:'Samedi', dimanche:'Dimanche'
+};
+const DAY_NUMBER = {lundi:1, mardi:2, mercredi:3, jeudi:4, vendredi:5, samedi:6, dimanche:0};
 
 const DAYS_ORDER = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
 const DAY_JS_MAP  = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
@@ -191,26 +224,29 @@ function saveDayProgramOverride(dateKey,progKey){
 }
 function getEffectiveDayProgram(dateKey){
   const override=getDayProgramOverride(dateKey);
-  if(override&&PROGRAM[override])return{key:override,prog:PROGRAM[override]};
+  if(override&&PROGRAM[override])return{key:override,prog:PROGRAM[override],isSuggestion:false};
   const dt=new Date(dateKey+'T12:00:00');
   const dayName=DAY_JS_MAP[dt.getDay()];
-  return{key:dayName,prog:PROGRAM[dayName]};
+  const sugKey=WEEKLY_SUGGESTIONS[dayName]||'repos';
+  return{key:sugKey,prog:PROGRAM[sugKey],dayName,isSuggestion:true};
 }
 
 function showProgramPicker(dateKey){
   const current=getDayProgramOverride(dateKey);
-  const defaultDayName=DAY_JS_MAP[new Date(dateKey+'T12:00:00').getDay()];
+  const dt=new Date(dateKey+'T12:00:00');
+  const dayName=DAY_JS_MAP[dt.getDay()];
+  const defaultKey=WEEKLY_SUGGESTIONS[dayName]||'repos';
   let opts='';
-  DAYS_ORDER.forEach(key=>{
+  PROGRAM_PICKER_KEYS.forEach(key=>{
     const p=PROGRAM[key];
-    const isSelected=current?current===key:key===defaultDayName;
-    const isDefault=key===defaultDayName;
-    const typeLabel=p.type==='rest'?'😴 Repos':p.type==='run'?'🏃 Running':p.type==='gym+run'?'🏋️+🏃 Salle+Run':'🏋️ Salle';
+    const isSelected=current?current===key:key===defaultKey;
+    const isDefault=key===defaultKey;
+    const typeLabel=p.type==='rest'?'😴 Repos':p.type==='run'?'🏃 Running':'🏋️ Salle';
     opts+=`<div class="prog-pick-item${isSelected?' selected':''}" onclick="selectDayProgram('${dateKey}','${key}')">
       <span class="prog-pick-icon">${p.icon}</span>
       <div class="prog-pick-info">
-        <div class="prog-pick-name">${p.label} — ${p.fullName}</div>
-        <div class="prog-pick-meta">${typeLabel}${p.exercises.length?` · ${p.exercises.length} exercices`:''}${isDefault?' · <span style="color:var(--green)">Par défaut</span>':''}</div>
+        <div class="prog-pick-name">${p.fullName}</div>
+        <div class="prog-pick-meta">${typeLabel}${p.exercises.length?` · ${p.exercises.length} exercices`:''}${isDefault?' · <span style="color:var(--green)">Suggéré</span>':''}</div>
       </div>
       ${isSelected?'<span class="prog-pick-check">✓</span>':''}
     </div>`;
@@ -221,9 +257,9 @@ function showProgramPicker(dateKey){
         <div class="modal-title">🗓️ Choisir un programme</div>
         <button class="drawer-close" onclick="closeProgramPicker()">✕</button>
       </div>
-      <div class="prog-pick-hint">Remplace le programme d'aujourd'hui par celui de ton choix.</div>
+      <div class="prog-pick-hint">Le programme suggéré est mis en avant. Tu peux choisir n'importe quelle séance.</div>
       <div class="prog-pick-list">${opts}</div>
-      ${current?`<button class="prog-pick-reset" onclick="resetDayProgram('${dateKey}')">↩️ Rétablir le programme par défaut</button>`:''}
+      ${current?`<button class="prog-pick-reset" onclick="resetDayProgram('${dateKey}')">↩️ Revenir au programme suggéré</button>`:''}
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend',html);
@@ -612,9 +648,8 @@ function checkAndShowPR(exId,exName,weight,reps){
   }
 }
 
-function getDayProgress(dateKey,dayName){
-  const override=getDayProgramOverride(dateKey);
-  const prog=(override&&PROGRAM[override])||PROGRAM[dayName];
+function getDayProgress(dateKey,_dayName){
+  const {prog}=getEffectiveDayProgram(dateKey);
   if(!prog||prog.type==='rest'||prog.exercises.length===0)return{done:0,total:0,pct:0};
   let total=0,done=0;
   prog.exercises.forEach(ex=>{
@@ -631,7 +666,8 @@ function getMuscleVolumes(){
     const dt=new Date();dt.setDate(dt.getDate()-i);
     const key=dateToKey(dt);
     const dayName=DAY_JS_MAP[dt.getDay()];
-    const prog=PROGRAM[dayName];
+    const sugKey=(d.dayProgram&&d.dayProgram[key])||WEEKLY_SUGGESTIONS[dayName]||'repos';
+    const prog=PROGRAM[sugKey];
     if(!prog||!d.workouts[key])continue;
     prog.exercises.forEach(ex=>{
       (d.workouts[key][ex.id]||[]).forEach(s=>{
@@ -793,9 +829,9 @@ function renderToday(){
   if(prog.type==='rest'){
     el.innerHTML=`<div class="rest-day">
       <div class="rest-emoji">😴</div>
-      <div class="rest-msg">REPOS TOTAL</div>
+      <div class="rest-msg">REPOS</div>
       <div class="rest-sub">Laisse ton corps récupérer.<br>La récupération c'est aussi de l'entraînement !</div>
-      <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">🔄 Changer de programme</button>
+      <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">🔄 Choisir un programme</button>
     </div>`;
     return;
   }
@@ -814,6 +850,7 @@ function renderToday(){
   }
   const tonnage=getTodayTonnage();
   const eq=getFunEquivalent(tonnage);
+  const suggestionLabel=!isOverridden?`<span class="prog-suggestion-badge">💡 Suggéré</span>`:'';
   let html=`
   <div class="chip">📅 ${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
   <div class="card green-glow">
@@ -821,9 +858,9 @@ function renderToday(){
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <div class="card-title">${prog.icon} ${prog.fullName}</div>
-          ${isOverridden?`<span class="prog-override-badge">✏️ Modifié</span>`:''}
+          ${isOverridden?`<span class="prog-override-badge">✏️ Modifié</span>`:suggestionLabel}
         </div>
-        <div class="card-sub">${prog.type==='gym+run'?'🏋️ Salle + 🏃 Running':'🏋️ Salle de sport'}</div>
+        <div class="card-sub">🏋️ Salle de sport</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         ${rBadgeHtml}
@@ -838,7 +875,7 @@ function renderToday(){
     prog.exercises.forEach(ex=>{html+=renderExBlock(ex,dateKey);});
     html+=`</div>`;
   }
-  if(prog.running) html+=buildRunCard(prog.running,dateKey,'runBtn','toggleRunDone');
+
   html+=`<div class="card tonnage-card" id="tonnageCard" style="${tonnage>0?'display:block':'display:none'}">
     <div style="display:flex;align-items:center;gap:14px">
       <div style="font-size:38px">${eq?eq.emoji:'⚡'}</div>
@@ -888,33 +925,48 @@ function toggleRunDone(dateKey,btnId){
 function renderWeek(){
   const todayName=getDayName();
   const el=document.getElementById('week-content');
-  let html=`<div class="chip">📅 Programme de la semaine</div>`;
+  let html=`<div class="chip">📅 Programme de la semaine</div>
+  <div class="week-suggestion-legend">
+    <div class="week-sug-item"><span style="color:var(--green)">Lun + Jeu</span> — Pecs & Triceps</div>
+    <div class="week-sug-item"><span style="color:var(--blue)">Mar + Ven</span> — Dos & Épaules</div>
+    <div class="week-sug-item"><span style="color:var(--orange)">Mer</span> — Abdos & Core</div>
+  </div>`;
   DAYS_ORDER.forEach(dayName=>{
-    const prog=PROGRAM[dayName];
+    const sugKey=WEEKLY_SUGGESTIONS[dayName]||'repos';
+    const prog=PROGRAM[sugKey];
     const isToday=dayName===todayName;
     const today=new Date();today.setHours(0,0,0,0);
-    const d=new Date(today);d.setDate(today.getDate()+(prog.day-today.getDay()));
+    const jsDay=DAY_NUMBER[dayName];
+    const d=new Date(today);
+    let diff=jsDay-today.getDay();
+    d.setDate(today.getDate()+diff);
     const dateKey=dateToKey(d);
+    const override=getDayProgramOverride(dateKey);
+    const effectiveProg=override&&PROGRAM[override]?PROGRAM[override]:prog;
     const p=getDayProgress(dateKey,dayName);
     let typeTag='';
-    if(prog.type==='gym')typeTag='<span style="color:var(--green);font-size:10px">🏋️ Salle</span>';
-    else if(prog.type==='gym+run')typeTag='<span style="color:var(--blue);font-size:10px">🏋️+🏃</span>';
-    else if(prog.type==='run')typeTag='<span style="color:var(--blue);font-size:10px">🏃 Running</span>';
-    else typeTag='<span style="color:var(--muted);font-size:10px">😴 Repos</span>';
-    const clickable=prog.type!=='rest';
+    if(effectiveProg.type==='rest')typeTag='<span style="color:var(--muted);font-size:10px">😴 Repos</span>';
+    else typeTag='<span style="color:var(--green);font-size:10px">🏋️ Salle</span>';
+    const clickable=effectiveProg.type!=='rest';
+    const overrideBadge=override?`<span style="font-size:9px;color:var(--orange);font-family:var(--fm)">✏️</span>`
+      :`<span style="font-size:9px;color:var(--dim);font-family:var(--fm)">💡</span>`;
     html+=`<div class="wday${isToday?' today':''}" ${clickable?`onclick="openDayDrawer('${dayName}','${dateKey}')"`:''}
       style="${clickable?'':'cursor:default'}">
       ${isToday?'<div class="today-tag">AUJOURD\'HUI</div>':''}
-      <div class="wicon">${prog.icon}</div>
-      <div><div class="wname">${prog.label}</div><div class="wsub">${prog.fullName}</div><div style="margin-top:4px">${typeTag}</div></div>
+      <div class="wicon">${effectiveProg.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="wname">${DAY_LABELS[dayName]} ${overrideBadge}</div>
+        <div class="wsub">${effectiveProg.fullName}</div>
+        <div style="margin-top:4px">${typeTag}</div>
+      </div>
       <div style="margin-left:auto;text-align:right;display:flex;align-items:center;gap:8px">
         <div>
-          ${prog.type!=='rest'&&p.total>0?`
+          ${effectiveProg.type!=='rest'&&p.total>0?`
             <div class="wprog${p.pct===0?' zero':''}">${p.pct}%</div>
             <div style="font-size:10px;color:var(--muted)">${p.done}/${p.total}</div>
             <div style="width:60px;height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:4px;margin-left:auto">
               <div style="width:${p.pct}%;height:100%;background:var(--green);border-radius:2px"></div></div>
-          `:prog.type!=='rest'?'<div class="wprog zero">0%</div>':'<div class="wprog zero">—</div>'}
+          `:effectiveProg.type!=='rest'?'<div class="wprog zero">0%</div>':'<div class="wprog zero">—</div>'}
         </div>
         ${clickable?'<div class="wday-chevron">›</div>':''}
       </div>
@@ -1104,14 +1156,15 @@ function renderCardio(){
     </div>`;
   });
   const runDays=[
-    {key:'mardi', icon:'⚡',name:'Mardi — Fractionne HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',   detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
-    {key:'jeudi', icon:'🏃',name:'Jeudi — Tempo',          desc:'Allure soutenue sur 5km pour développer ton seuil lactique.',detail:'5km continu, légèrement inconfortable mais constant'},
+    {key:'mardi', icon:'⚡',name:'Mardi — Fractionné HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',   detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
+    {key:'jeudi', icon:'🏃',name:'Jeudi — Tempo',              desc:'Allure soutenue sur 5km pour développer ton seuil lactique.',detail:'5km continu, légèrement inconfortable mais constant'},
     {key:'dimanche',icon:'🌿',name:'Dimanche — Sortie Longue', desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',    detail:'45–60min très lent, conversation possible'},
   ];
   let runCardsHtml='';
   runDays.forEach(rd=>{
     const today=new Date();today.setHours(0,0,0,0);
-    const d=new Date(today);d.setDate(today.getDate()+(PROGRAM[rd.key].day-today.getDay()));
+    const jsDay=DAY_NUMBER[rd.key];
+    const d=new Date(today);d.setDate(today.getDate()+(jsDay-today.getDay()+7)%7);
     const dateKey=dateToKey(d);
     const rl=getRunLog(dateKey);
     runCardsHtml+=`<div class="run-card">
@@ -1131,14 +1184,13 @@ function renderCardio(){
       </div>
       <button class="run-done-btn${rl.done?' done':''}" id="crunBtn-${dateKey}"
         onclick="toggleRunDone2('${dateKey}')">
-        ${rl.done?'✅ Séance Running Terminee !':'Marquer comme faite'}
+        ${rl.done?'✅ Séance Running Terminée !':'Marquer comme faite'}
       </button>
     </div>`;
   });
   document.getElementById('cardio-content').innerHTML=`
-  <div class="chip">🏃 Séances Running & Cardio</div>
-  ${runCardsHtml}
-  <div class="card">
+  <div class="chip">🏃 Cardio & Running</div>
+  <div class="card" style="margin-bottom:12px">
     <div class="stitle">💓 Calculateur Zones Cardio</div>
     <div class="age-row">
       <div>
@@ -1149,7 +1201,23 @@ function renderCardio(){
       <div style="font-family:var(--fm);font-size:11px;color:var(--dim)">FC max :<br><b style="font-size:18px;color:var(--text)">${hrMax}</b> BPM</div>
     </div>
     <div id="zonesResult">${zonesHtml}</div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleRunSection()">
+      <div class="stitle" style="margin-bottom:0">🏃 Séances Running</div>
+      <span id="runSectionChevron" style="color:var(--dim);font-size:18px;transition:transform .25s">›</span>
+    </div>
+    <div id="runSection" style="display:none;margin-top:12px">${runCardsHtml}</div>
   </div>`;
+}
+
+function toggleRunSection(){
+  const sec=document.getElementById('runSection');
+  const chev=document.getElementById('runSectionChevron');
+  if(!sec)return;
+  const open=sec.style.display==='none';
+  sec.style.display=open?'block':'none';
+  if(chev)chev.style.transform=open?'rotate(90deg)':'';
 }
 
 function toggleRunDone2(dateKey){
@@ -1181,7 +1249,7 @@ function calcZones(){
 }
 
 function openDayDrawer(dayName,dateKey){
-  const prog=PROGRAM[dayName];
+  const {prog}=getEffectiveDayProgram(dateKey);
   if(!prog||prog.type==='rest')return;
   document.getElementById('drawerTitle').textContent=prog.icon+' '+prog.fullName;
   const p=getDayProgress(dateKey,dayName);
@@ -1199,7 +1267,10 @@ function openDayDrawer(dayName,dateKey){
     prog.exercises.forEach(ex=>{html+=renderExBlock(ex,dateKey);});
     html+=`</div>`;
   }
-  if(prog.running) html+=buildRunCard(prog.running,dateKey,'drawerRunBtn','toggleRunDone');
+
+  html+=`<div style="text-align:center;padding:8px 0 4px">
+    <button class="prog-switch-btn" style="font-size:12px" onclick="closeDrawer();showProgramPicker('${dateKey}')">🔄 Changer ce programme</button>
+  </div>`;
   document.getElementById('drawerBody').innerHTML=html;
   document.getElementById('drawerOverlay').classList.add('open');
   document.getElementById('dayDrawer').classList.add('open');

@@ -255,3 +255,6 @@ select.si{text-align:left;background-image:none;}
 .prog-pick-reset{width:100%;margin-top:12px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:11px;font-family:var(--fb);font-size:13px;cursor:pointer;transition:all .2s;}
 .prog-pick-reset:active{background:rgba(255,255,255,.05);}
 .rest-day .prog-switch-btn{margin-top:20px;padding:10px 20px;font-size:13px;border-radius:var(--rs);display:block;margin-left:auto;margin-right:auto;}
+.prog-suggestion-badge{background:rgba(34,217,122,.1);border:1px solid var(--green);color:var(--green);border-radius:20px;padding:2px 8px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.week-suggestion-legend{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
+.week-sug-item{font-size:11px;color:var(--dim);font-family:var(--fm);}
