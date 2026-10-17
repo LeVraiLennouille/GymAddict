@@ -1,6 +1,6 @@
-const CACHE_version = 'ga-v2.6.2';
-const STATIC_CACHE  = `${CACHE_VERSION}-static`;
-const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
+const CACHE_VERSION = 'ga-v2.7.0';
+const CACHE_STATIC  = `${CACHE_VERSION}-static`;
+const CACHE_FONTS   = `${CACHE_VERSION}-fonts`;
 
 const STATIC_ASSETS = [
   './index.html',

@@ -1,3 +1,13 @@
+const ICONS={
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>',
+  chev:'<path d="M9 6l6 6-6 6"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+  undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8L3.5 9.7l5.9-.8z"/>',
+  dumbbell:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>'
+};
+const ic=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
 const EX_LUNDI = [
   {id:"dev_pec_echauff", name:"Développé couché (à vide)", sets:2, repsLabel:"15 reps", defaultReps:15, type:"echauffement", muscles:["pecs", "triceps"], restSec:60},
   {id:"tractions", name:"Tractions", sets:2, repsLabel:"Échec", defaultReps:10, type:"compound", muscles:["triceps"], restSec:120},
@@ -76,23 +86,25 @@ const EX_ABDOS = [
 ];
 
 const PROGRAM = {
-  pecs_tri: {label:"Pecs & Triceps", icon:"💪", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
-  dos_ep:   {label:"Dos & Épaules",  icon:"🏋️", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
-  abdos:    {label:"Abdos",          icon:"🎯", fullName:"Abdominaux & Core",      type:"gym", exercises: EX_ABDOS},
-  jambes:   {label:"Jambes",         icon:"🦵", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
-  epaules:  {label:"Épaules",        icon:"🔥", fullName:"Épaules & Trapèzes",    type:"gym", exercises: EX_JEUDI},
-  rappel:   {label:"Rappel",         icon:"💥", fullName:"Rappel Haut du Corps",  type:"gym", exercises: EX_VENDREDI},
-  repos:    {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
+  pecs_tri: {label:"Pecs & Triceps", icon:"", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
+  dos_ep:   {label:"Dos & Épaules",  icon:"", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
+  abdos:    {label:"Abdos",          icon:"", fullName:"Abdominaux & Core",      type:"gym", exercises: EX_ABDOS},
+  jambes:   {label:"Jambes",         icon:"", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
+  epaules:  {label:"Épaules",        icon:"", fullName:"Épaules & Trapèzes",    type:"gym", exercises: EX_JEUDI},
+  rappel:   {label:"Rappel",         icon:"", fullName:"Rappel Haut du Corps",  type:"gym", exercises: EX_VENDREDI},
+  repos:    {label:"Repos",          icon:"", fullName:"Repos Total",            type:"rest",exercises:[]},
 
-  lundi:    {label:"Pecs & Triceps", icon:"💪", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
-  mardi:    {label:"Dos & Épaules",  icon:"🏋️", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
-  mercredi: {label:"Jambes",         icon:"🦵", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
-  jeudi:    {label:"Pecs & Triceps", icon:"💪", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_JEUDI},
-  vendredi: {label:"Dos & Épaules",  icon:"🏋️", fullName:"Dos & Épaules",          type:"gym", exercises: EX_VENDREDI},
-  samedi:   {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
-  dimanche: {label:"Repos",          icon:"😴", fullName:"Repos Total",            type:"rest",exercises:[]},
+  lundi:    {label:"Pecs & Triceps", icon:"", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
+  mardi:    {label:"Dos & Épaules",  icon:"", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
+  mercredi: {label:"Jambes",         icon:"", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
+  jeudi:    {label:"Pecs & Triceps", icon:"", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_JEUDI},
+  vendredi: {label:"Dos & Épaules",  icon:"", fullName:"Dos & Épaules",          type:"gym", exercises: EX_VENDREDI},
+  samedi:   {label:"Repos",          icon:"", fullName:"Repos Total",            type:"rest",exercises:[]},
+  dimanche: {label:"Repos",          icon:"", fullName:"Repos Total",            type:"rest",exercises:[]},
 };
 
+const PROG_COLORS={pecs_tri:'var(--c-red)',lundi:'var(--c-red)',jeudi:'var(--c-red)',rappel:'var(--c-red)',dos_ep:'var(--c-blue)',mardi:'var(--c-blue)',vendredi:'var(--c-blue)',epaules:'var(--c-blue)',abdos:'var(--c-green)',jambes:'var(--c-yellow)',mercredi:'var(--c-yellow)',repos:'#3A3E48',samedi:'#3A3E48',dimanche:'#3A3E48'};
+const progColor=k=>PROG_COLORS[k]||'var(--c-green)';
 const PROGRAM_PICKER_KEYS = ['pecs_tri','dos_ep','abdos','jambes','epaules','rappel','repos'];
 const WEEKLY_SUGGESTIONS = {
   lundi:    'pecs_tri',
@@ -223,25 +235,25 @@ function showProgramPicker(dateKey){
     const p=PROGRAM[key];
     const isSelected=current?current===key:key===defaultKey;
     const isDefault=key===defaultKey;
-    const typeLabel=p.type==='rest'?'😴 Repos':p.type==='run'?'🏃 Running':'🏋️ Salle';
+    const typeLabel=p.type==='rest'?'Repos':p.type==='run'?'Running':'Salle';
     opts+=`<div class="prog-pick-item${isSelected?' selected':''}" onclick="selectDayProgram('${dateKey}','${key}')">
-      <span class="prog-pick-icon">${p.icon}</span>
+      <span class="prog-pick-icon" style="--c:${progColor(key)}"></span>
       <div class="prog-pick-info">
         <div class="prog-pick-name">${p.fullName}</div>
         <div class="prog-pick-meta">${typeLabel}${p.exercises.length?` · ${p.exercises.length} exercices`:''}${isDefault?' · <span style="color:var(--green)">Suggéré</span>':''}</div>
       </div>
-      ${isSelected?'<span class="prog-pick-check">✓</span>':''}
+      ${isSelected?'<span class="prog-pick-check">'+ic('check')+'</span>':''}
     </div>`;
   });
   const html=`<div class="modal-overlay" id="progPickerModal" onclick="if(event.target.id==='progPickerModal')closeProgramPicker()">
     <div class="modal-box prog-pick-box">
       <div class="modal-hdr">
-        <div class="modal-title">🗓️ Choisir un programme</div>
-        <button class="drawer-close" onclick="closeProgramPicker()">✕</button>
+        <div class="modal-title">Choisir un programme</div>
+        <button class="drawer-close" onclick="closeProgramPicker()">${ic('close')}</button>
       </div>
       <div class="prog-pick-hint">Le programme suggéré est mis en avant. Tu peux choisir n'importe quelle séance.</div>
       <div class="prog-pick-list">${opts}</div>
-      ${current?`<button class="prog-pick-reset" onclick="resetDayProgram('${dateKey}')">↩️ Revenir au programme suggéré</button>`:''}
+      ${current?`<button class="prog-pick-reset" onclick="resetDayProgram('${dateKey}')">${ic('undo')} Revenir au programme suggéré</button>`:''}
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend',html);
@@ -251,13 +263,13 @@ function selectDayProgram(dateKey,progKey){
   saveDayProgramOverride(dateKey,progKey);
   closeProgramPicker();
   renderToday();
-  showToast('📋 Programme : '+PROGRAM[progKey].fullName);
+  showToast('Programme : '+PROGRAM[progKey].fullName);
 }
 function resetDayProgram(dateKey){
   saveDayProgramOverride(dateKey,null);
   closeProgramPicker();
   renderToday();
-  showToast('↩️ Programme par défaut rétabli');
+  showToast('Programme par défaut rétabli');
 }
 
 function calc1RM(weight,reps){
@@ -281,13 +293,13 @@ function getWarmupSets(workingWeight){
 }
 
 const FUN_EQ=[
-  {w:4,emoji:'🐱',name:'chat',names:'chats'},
-  {w:80,emoji:'🧑',name:'adulte',names:'adultes'},
-  {w:200,emoji:'🏍️',name:'moto',names:'motos'},
-  {w:600,emoji:'🐄',name:'vache',names:'vaches'},
-  {w:1500,emoji:'🚗',name:'voiture',names:'voitures'},
-  {w:6000,emoji:'🐘',name:"éléphant d'Afrique",names:"éléphants d'Afrique"},
-  {w:12000,emoji:'🚌',name:'bus',names:'bus'},
+  {w:4,emoji:'',name:'chat',names:'chats'},
+  {w:80,emoji:'',name:'adulte',names:'adultes'},
+  {w:200,emoji:'',name:'moto',names:'motos'},
+  {w:600,emoji:'',name:'vache',names:'vaches'},
+  {w:1500,emoji:'',name:'voiture',names:'voitures'},
+  {w:6000,emoji:'',name:"éléphant d'Afrique",names:"éléphants d'Afrique"},
+  {w:12000,emoji:'',name:'bus',names:'bus'},
 ];
 function getFunEquivalent(kg){
   if(kg<=0)return null;
@@ -405,15 +417,15 @@ function showWarmupModal(exId,exName){
   const html=`<div class="modal-overlay" id="warmupModal" onclick="if(event.target.id==='warmupModal')closeModal()">
     <div class="modal-box">
       <div class="modal-hdr">
-        <div class="modal-title">🔥 Plan d'Échauffement</div>
-        <button class="drawer-close" onclick="closeModal()">✕</button>
+        <div class="modal-title">Échauffement</div>
+        <button class="drawer-close" onclick="closeModal()">${ic('close')}</button>
       </div>
       <div style="font-size:13px;color:var(--dim);margin-bottom:4px">${exName}</div>
       ${oneRM?`<div style="font-size:11px;color:var(--muted);margin-bottom:12px">1RM estimé: <b style="color:var(--orange)">${oneRM}kg</b></div>`:''}
       <div class="warmup-inp-row" style="margin-bottom:14px">
         <div><div style="font-size:11px;color:var(--dim);margin-bottom:4px">Charge de travail (kg)</div>
         <input class="big-inp" type="number" id="warmupWtInp" value="${w||''}" placeholder="kg" inputmode="decimal" style="width:90px"></div>
-        <button class="btn-calc" onclick="refreshWarmup()">↻ Calc</button>
+        <button class="btn-calc" onclick="refreshWarmup()">${ic('refresh')} Calculer</button>
       </div>
       <div id="warmupSets">${w?renderWarmupSets(sets):'<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Entre ton poids de travail ci-dessus</div>'}</div>
     </div>
@@ -449,30 +461,30 @@ function showReadinessPopup(){
   if(getReadiness(dateKey))return;
   _readinessVals={sleep:3,stress:3,soreness:3};
   const makeStars=(group,defaultVal=3)=>[1,2,3,4,5].map(i=>
-    `<button class="star-btn${i<=defaultVal?' s-active':''}" onclick="selectStar('${group}',${i})">${i<=defaultVal?'⭐':'☆'}</button>`
+    `<button class="star-btn${i<=defaultVal?' s-active':''}" onclick="selectStar('${group}',${i})">${ic('star')}</button>`
   ).join('');
   const pseudo=getProfile().pseudo||'Athlète';
   const html=`<div class="modal-overlay" id="readinessModal">
     <div class="modal-box">
-      <div class="modal-hdr"><div class="modal-title">💪 Check-in Seance</div><button class="drawer-close" onclick="closeModal()">✕</button></div>
+      <div class="modal-hdr"><div class="modal-title">Check-in</div><button class="drawer-close" onclick="closeModal()">${ic('close')}</button></div>
       <div style="font-size:12px;color:var(--dim);margin-bottom:20px">Salut <b style="color:var(--green)">${pseudo}</b> ! Comment tu te sens aujourd'hui ?</div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:16px;text-align:center;font-family:var(--fm)">1 = Très mauvais &nbsp;·&nbsp; 5 = Parfait</div>
       <div class="ready-item">
-        <div class="ready-label">😴 Qualité du sommeil</div>
-        <div class="ready-scale-labels"><span>😩</span><span>😐</span><span>😄</span></div>
+        <div class="ready-label">Qualité du sommeil</div>
+        <div class="ready-scale-labels"><span>Mauvais</span><span>Parfait</span></div>
         <div class="ready-stars" id="rs-sleep">${makeStars('sleep',3)}</div>
       </div>
       <div class="ready-item">
-        <div class="ready-label">🧘 Niveau d'énergie / Stress</div>
-        <div class="ready-scale-labels"><span>😩 Épuisé</span><span>💪 Plein de feu</span></div>
+        <div class="ready-label">Énergie et stress</div>
+        <div class="ready-scale-labels"><span>Épuisé</span><span>Plein de feu</span></div>
         <div class="ready-stars" id="rs-stress">${makeStars('stress',3)}</div>
       </div>
       <div class="ready-item">
-        <div class="ready-label">💪 État musculaire</div>
-        <div class="ready-scale-labels"><span>😩 Courbaturé</span><span>✅ Frais</span></div>
+        <div class="ready-label">État musculaire</div>
+        <div class="ready-scale-labels"><span>Courbaturé</span><span>Frais</span></div>
         <div class="ready-stars" id="rs-soreness">${makeStars('soreness',3)}</div>
       </div>
-      <button class="run-done-btn" style="margin-top:20px;font-size:14px;font-family:var(--fh);letter-spacing:1px" onclick="submitReadiness()">Demarrer 🚀</button>
+      <button class="run-done-btn" style="margin-top:20px;font-size:14px;font-family:var(--fh);letter-spacing:1px" onclick="submitReadiness()">Démarrer</button>
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend',html);
@@ -483,7 +495,7 @@ function selectStar(group,val){
   const c=document.getElementById('rs-'+group);
   if(!c)return;
   c.querySelectorAll('.star-btn').forEach((btn,i)=>{
-    const on=i<val;btn.textContent=on?'⭐':'☆';btn.classList.toggle('s-active',on);
+    btn.classList.toggle('s-active',i<val);
   });
 }
 
@@ -492,10 +504,10 @@ function submitReadiness(){
   const score=computeReadinessScore(_readinessVals);
   saveReadiness(dateKey,{..._readinessVals,score});
   closeModal();
-  if(score<=2)showToast('😴 Forme basse détectée — réduis tes charges de 10–15%');
-  else if(score<=3)showToast('💪 Forme correcte — écoute ton corps en séance');
-  else if(score>=4.5)showToast('🔥 Forme olympique ! Pulvérise tes records !');
-  else showToast('⚡ Bonne forme ! Tu vas assurer aujourd\'hui');
+  if(score<=2)showToast('Forme basse détectée — réduis tes charges de 10–15%');
+  else if(score<=3)showToast('Forme correcte — écoute ton corps en séance');
+  else if(score>=4.5)showToast('Forme olympique ! Pulvérise tes records !');
+  else showToast('Bonne forme ! Tu vas assurer aujourd\'hui');
   _updateReadinessBadge(score);
 }
 
@@ -503,9 +515,9 @@ function _updateReadinessBadge(score){
   const el=document.getElementById('readinessBadge');
   if(!el)return;
   let rColor,rEmoji;
-  if(score>=4){rColor='var(--green)';rEmoji='🟢';}
-  else if(score>=3){rColor='var(--yellow)';rEmoji='🟡';}
-  else{rColor='var(--red)';rEmoji='🔴';}
+  if(score>=4){rColor='var(--green)';rEmoji='';}
+  else if(score>=3){rColor='var(--yellow)';rEmoji='';}
+  else{rColor='var(--red)';rEmoji='';}
   el.innerHTML=`${rEmoji} ${score}/5`;
   el.style.display='inline-flex';el.style.borderColor=rColor;el.style.color=rColor;
 }
@@ -528,7 +540,7 @@ function updateTonnageCard(){
   const eEl=document.getElementById('tonnageEq');
   if(vEl)vEl.textContent=t.toLocaleString('fr-FR')+' kg';
   const eq=getFunEquivalent(t);
-  if(eEl)eEl.textContent=eq?`soit ${eq.count} ${eq.name} ${eq.emoji}`:'';
+  if(eEl)eEl.textContent=eq?`soit ${eq.count} ${eq.name}`:'';
 }
 
 function computeStreak(){
@@ -553,7 +565,7 @@ function computeReg(){
   return Math.round(count/7*100);
 }
 
-function updateStreak(){document.getElementById('streakBadge').textContent='🔥 '+computeStreak()+'j';}
+function updateStreak(){document.getElementById('streakBadge').textContent=computeStreak()+' j';}
 function updateReg(){document.getElementById('regBadge').textContent=computeReg()+'%';}
 
 let _saveTimer;
@@ -719,7 +731,7 @@ function renderExBlock(ex,dateKey){
           onchange="onRepsChange('${dateKey}','${ex.id}',${i},this.value)">
       </div>
       <div id="pr-${ex.id}-${i}" class="pr-flag" data-ex="${ex.id}"
-        style="display:${isPR?'inline-block':'none'}">PR 🏅</div>
+        style="display:${isPR?'inline-block':'none'}">PR</div>
     </div>`;
   }
 
@@ -732,11 +744,11 @@ function renderExBlock(ex,dateKey){
       <div class="ex-name">${ex.name}</div>
       ${badge}
     </div>
-    <div class="ex-meta">📊 ${ex.sets} séries · ${ex.repsLabel}${exPR?` · 🏆 PR: <b style="color:var(--orange)">${exPR.weight}kg × ${exPR.reps}reps</b>`:''}
+    <div class="ex-meta">${ex.sets} séries · ${ex.repsLabel}${exPR?` · PR : <b style="color:var(--orange)">${exPR.weight}kg × ${exPR.reps}reps</b>`:''}
     </div>
     <div class="sets-wrap">${setRows}</div>
     <div class="ex-notes">
-      <input class="ex-note-inp" type="text" placeholder="⚙️ Réglages machine (ex: Siège cran 4, prise large...)"
+      <input class="ex-note-inp" type="text" placeholder="Réglages (ex : cran 4, prise large)"
         value="${noteEscaped}"
         onchange="debounce('ns-${ex.id}-${dateKey}',()=>{saveExNote('${dateKey}','${ex.id}','settings',this.value);},600)">
       <div class="ex-note-rpe-row">
@@ -746,7 +758,7 @@ function renderExBlock(ex,dateKey){
             value="${note.rpe||''}"
             onchange="debounce('nr-${ex.id}-${dateKey}',()=>{saveExNote('${dateKey}','${ex.id}','rpe',this.value);},400)">
         </div>
-        ${!ex.isTime?`<button class="warmup-btn" onclick="showWarmupModal('${ex.id}','${safeNameDisplay}')">🔥 Warm-up</button>`:''}
+        ${!ex.isTime?`<button class="warmup-btn" onclick="showWarmupModal('${ex.id}','${safeNameDisplay}')">Échauffement</button>`:''}
       </div>
     </div>
   </div>`;
@@ -799,6 +811,7 @@ function updateDayProgressBar(dateKey){
   const bar=document.getElementById('prog-'+dateKey);
   const txt=document.getElementById('progtxt-'+dateKey);
   if(bar)bar.style.width=p.pct+'%';
+  const hp=document.getElementById('heropct-'+dateKey);if(hp)hp.textContent=p.pct;
   if(txt)txt.textContent=p.done+'/'+p.total+' séries · '+p.pct+'%';
 }
 
@@ -810,10 +823,10 @@ function renderToday(){
   if(!prog){el.innerHTML='<div class="empty">Programme indisponible</div>';return;}
   if(prog.type==='rest'){
     el.innerHTML=`<div class="rest-day">
-      <div class="rest-emoji">😴</div>
+      
       <div class="rest-msg">REPOS</div>
       <div class="rest-sub">Laisse ton corps récupérer.<br>La récupération c'est aussi de l'entraînement !</div>
-      <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">🔄 Choisir un programme</button>
+      <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">Choisir un programme</button>
     </div>`;
     return;
   }
@@ -823,33 +836,33 @@ function renderToday(){
   if(readiness){
     const score=readiness.score||computeReadinessScore(readiness);
     let rColor,rEmoji;
-    if(score>=4){rColor='var(--green)';rEmoji='🟢';}
-    else if(score>=3){rColor='var(--yellow)';rEmoji='🟡';}
-    else{rColor='var(--red)';rEmoji='🔴';}
+    if(score>=4){rColor='var(--green)';rEmoji='';}
+    else if(score>=3){rColor='var(--yellow)';rEmoji='';}
+    else{rColor='var(--red)';rEmoji='';}
     rBadgeHtml=`<div id="readinessBadge" class="readiness-chip" style="border-color:${rColor};color:${rColor};display:inline-flex">${rEmoji} ${score}/5</div>`;
   } else {
     rBadgeHtml=`<div id="readinessBadge" class="readiness-chip" style="display:none"></div>`;
   }
   const tonnage=getTodayTonnage();
   const eq=getFunEquivalent(tonnage);
-  const suggestionLabel=!isOverridden?`<span class="prog-suggestion-badge">💡 Suggéré</span>`:'';
+  const suggestionLabel=!isOverridden?`<span class="prog-suggestion-badge">Suggéré</span>`:'';
   let html=`
-  <div class="chip">📅 ${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
-  <div class="card green-glow">
+  <div class="chip">${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
+  <div class="card hero" style="--c:${progColor(dayName)}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div class="card-title">${prog.icon} ${prog.fullName}</div>
-          ${isOverridden?`<span class="prog-override-badge">✏️ Modifié</span>`:suggestionLabel}
+          <div class="card-title">${prog.fullName}</div>
+          ${isOverridden?`<span class="prog-override-badge">Modifié</span>`:suggestionLabel}
         </div>
-        <div class="card-sub">🏋️ Salle de sport</div>
+        <div class="card-sub">Salle de sport</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         ${rBadgeHtml}
-        <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">🔄 Changer</button>
+        <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">Changer</button>
       </div>
     </div>
-    <div class="prog-txt" id="progtxt-${dateKey}">${p.done}/${p.total} séries · ${p.pct}%</div>
+    <div class="hero-pct"><span id="heropct-${dateKey}">${p.pct}</span><small>%</small><em id="progtxt-${dateKey}">${p.done}/${p.total} séries · ${p.pct}%</em></div>
     <div class="prog-wrap"><div class="prog-fill" id="prog-${dateKey}" style="width:${p.pct}%"></div></div>
   </div>`;
   if(prog.exercises.length>0){
@@ -860,11 +873,11 @@ function renderToday(){
 
   html+=`<div class="card tonnage-card" id="tonnageCard" style="${tonnage>0?'display:block':'display:none'}">
     <div style="display:flex;align-items:center;gap:14px">
-      <div style="font-size:38px">${eq?eq.emoji:'⚡'}</div>
+      <div class="eq-ic">${ic('dumbbell')}</div>
       <div>
         <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Tonnage d'aujourd'hui</div>
         <div id="tonnageVal" style="font-family:var(--fm);font-size:26px;font-weight:700;color:var(--green)">${tonnage.toLocaleString('fr-FR')} kg</div>
-        <div id="tonnageEq" style="font-size:12px;color:var(--dim)">${eq?`soit ${eq.count} ${eq.name} ${eq.emoji}`:''}</div>
+        <div id="tonnageEq" style="font-size:12px;color:var(--dim)">${eq?`soit ${eq.count} ${eq.name}`:''}</div>
       </div>
     </div>
   </div>`;
@@ -891,7 +904,7 @@ function buildRunCard(running,dateKey,btnId,toggleFn){
     </div>
     <button class="run-done-btn${rl.done?' done':''}" id="${btnId}-${dateKey}"
       onclick="${toggleFn}('${dateKey}','${btnId}')">
-      ${rl.done?'✅ Séance Running Terminée !':'Marquer la séance Running comme faite'}
+      ${rl.done?'Séance terminée':'Marquer la séance Running comme faite'}
     </button>
   </div>`;
 }
@@ -901,18 +914,13 @@ function toggleRunDone(dateKey,btnId){
   const v=!rl.done;
   saveRunLog(dateKey,'done',v);
   const btn=document.getElementById((btnId||'runBtn')+'-'+dateKey);
-  if(btn){btn.className='run-done-btn'+(v?' done':'');btn.textContent=v?'✅ Séance Running Terminée !':'Marquer la séance Running comme faite';}
+  if(btn){btn.className='run-done-btn'+(v?' done':'');btn.textContent=v?'Séance terminée':'Marquer la séance Running comme faite';}
 }
 
 function renderWeek(){
   const todayName=getDayName();
   const el=document.getElementById('week-content');
-  let html=`<div class="chip">📅 Programme de la semaine</div>
-  <div class="week-suggestion-legend">
-    <div class="week-sug-item"><span style="color:var(--green)">Lun + Jeu</span> — Pecs & Triceps</div>
-    <div class="week-sug-item"><span style="color:var(--blue)">Mar + Ven</span> — Dos & Épaules</div>
-    <div class="week-sug-item"><span style="color:var(--orange)">Mer</span> — Jambes & Abdos</div>
-  </div>`;
+  let html=`<div class="chip">Programme de la semaine</div>`;
   DAYS_ORDER.forEach(dayName=>{
     const sugKey=WEEKLY_SUGGESTIONS[dayName]||'repos';
     const prog=PROGRAM[sugKey];
@@ -925,17 +933,17 @@ function renderWeek(){
     const dateKey=dateToKey(d);
     const override=getDayProgramOverride(dateKey);
     const effectiveProg=override&&PROGRAM[override]?PROGRAM[override]:prog;
+    const effKey=override&&PROGRAM[override]?override:sugKey;
     const p=getDayProgress(dateKey,dayName);
     let typeTag='';
-    if(effectiveProg.type==='rest')typeTag='<span style="color:var(--muted);font-size:10px">😴 Repos</span>';
-    else typeTag='<span style="color:var(--green);font-size:10px">🏋️ Salle</span>';
+    if(effectiveProg.type==='rest')typeTag='<span style="color:var(--muted);font-size:11px">Repos</span>';
+    else typeTag='<span style="color:var(--dim);font-size:11px">Salle</span>';
     const clickable=effectiveProg.type!=='rest';
-    const overrideBadge=override?`<span style="font-size:9px;color:var(--orange);font-family:var(--fm)">✏️</span>`
-      :`<span style="font-size:9px;color:var(--dim);font-family:var(--fm)">💡</span>`;
+    const overrideBadge=override?`<span style="font-size:10px;color:var(--orange)">modifié</span>`:'';
     html+=`<div class="wday${isToday?' today':''}" ${clickable?`onclick="openDayDrawer('${dayName}','${dateKey}')"`:''}
-      style="${clickable?'':'cursor:default'}">
+      style="--c:${progColor(effKey)};${clickable?'':'cursor:default'}">
       ${isToday?'<div class="today-tag">AUJOURD\'HUI</div>':''}
-      <div class="wicon">${effectiveProg.icon}</div>
+      <div class="wicon">${DAY_LABELS[dayName].slice(0,3)}</div>
       <div style="flex:1;min-width:0">
         <div class="wname">${DAY_LABELS[dayName]} ${overrideBadge}</div>
         <div class="wsub">${effectiveProg.fullName}</div>
@@ -950,7 +958,7 @@ function renderWeek(){
               <div style="width:${p.pct}%;height:100%;background:var(--green);border-radius:2px"></div></div>
           `:effectiveProg.type!=='rest'?'<div class="wprog zero">0%</div>':'<div class="wprog zero">—</div>'}
         </div>
-        ${clickable?'<div class="wday-chevron">›</div>':''}
+        ${clickable?'<div class="wday-chevron">'+ic('chev')+'</div>':''}
       </div>
     </div>`;
   });
@@ -972,7 +980,7 @@ function renderStats(){
       const oneRM=pr.reps>1?calc1RM(pr.weight,pr.reps):pr.weight;
       prHtml+=`<div class="pr-item">
         <div><div class="pr-item-name">${findExName(id)||id}</div>
-        <div class="pr-item-day">📅 ${pr.date||'—'}${pr.reps?' · '+pr.reps+' reps':''} · 1RM~${oneRM}kg</div></div>
+        <div class="pr-item-day">${pr.date||'—'}${pr.reps?' · '+pr.reps+' reps':''} · 1RM~${oneRM}kg</div></div>
         <div style="text-align:right">
           <div class="pr-item-w">${pr.weight} kg</div>
           <div style="font-family:var(--fm);font-size:10px;color:var(--blue)">${ratio}× BW</div>
@@ -983,17 +991,17 @@ function renderStats(){
   const allEx=getAllExercises();
   const exOptions=allEx.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
   document.getElementById('stats-content').innerHTML=`
-  <div class="chip">📊 Coach Data</div>
+  <div class="chip">Statistiques</div>
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-v" style="color:var(--orange)">${computeStreak()}</div><div class="stat-l">🔥 Jours de streak</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--green)">${computeReg()}%</div><div class="stat-l">📈 Régularité 7j</div></div>
+    <div class="stat-card"><div class="stat-v" style="color:var(--orange)">${computeStreak()}</div><div class="stat-l">Jours de streak</div></div>
+    <div class="stat-card"><div class="stat-v" style="color:var(--green)">${computeReg()}%</div><div class="stat-l">Régularité 7j</div></div>
   </div>
   <div class="card" style="margin-bottom:12px">
-    <div class="stitle">📅 Calendrier d'activite</div>
+    <div class="stitle">Calendrier d'activité</div>
     ${renderHeatmap()}
   </div>
   <div class="card" style="margin-bottom:12px">
-    <div class="stitle">📈 Evolution des charges et Volume</div>
+    <div class="stitle">Évolution des charges</div>
     <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
       <select id="exSelect" class="si" style="flex:1;text-align:left;font-size:12px;padding:8px" onchange="renderWeightChart()">
         ${exOptions}
@@ -1012,12 +1020,12 @@ function renderStats(){
     <canvas id="radarChart" height="250"></canvas>
   </div>
   <div class="card" style="margin-bottom:12px">
-    <div class="stitle">🏆 Records Personnels</div>
+    <div class="stitle">Records personnels</div>
     <div class="bw-row">
-      <div class="bw-lbl">⚖️ Poids de corps :</div>
+      <div class="bw-lbl">Poids de corps</div>
       <input class="big-inp" type="number" id="bwInp" value="${bw}" min="30" max="200" inputmode="decimal" style="width:75px">
       <span class="bw-lbl">kg</span>
-      <button class="btn-calc" onclick="saveBWAndRefresh()" style="padding:8px 12px;font-size:13px">✓</button>
+      <button class="btn-calc" onclick="saveBWAndRefresh()" style="padding:8px 12px;font-size:13px">${ic('check')}</button>
     </div>
     ${prHtml}
   </div>`;
@@ -1059,8 +1067,8 @@ function renderWeightChart(){
     const data=hist.map(h=>h.tonnage);
     const ctx=canvas.getContext('2d');
     const grad=ctx.createLinearGradient(0,0,0,190);
-    grad.addColorStop(0,'rgba(251,146,60,0.3)');grad.addColorStop(1,'rgba(251,146,60,0)');
-    weightChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Tonnage (kg·reps)',data,backgroundColor:'rgba(251,146,60,0.6)',borderColor:'#fb923c',borderWidth:2,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString('fr-FR')+' kg·reps'},backgroundColor:'#1a1a35',titleColor:'#e8e8f5',bodyColor:'#fb923c'}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a90a8',font:{size:10,family:'JetBrains Mono'}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a90a8',font:{size:10,family:'JetBrains Mono'},callback:v=>v+'kg'},beginAtZero:true}}}});
+    grad.addColorStop(0,'rgba(232,146,10,0.3)');grad.addColorStop(1,'rgba(232,146,10,0)');
+    weightChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Tonnage (kg·reps)',data,backgroundColor:'rgba(232,146,10,0.6)',borderColor:'#E8920A',borderWidth:2,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString('fr-FR')+' kg·reps'},backgroundColor:'#14161A',titleColor:'#e8e8f5',bodyColor:'#E8920A'}},scales:{x:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'}}},y:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'},callback:v=>v+'kg'},beginAtZero:true}}}});
     return;
   }
   const hist=getWeightHistory(exId);
@@ -1075,12 +1083,12 @@ function renderWeightChart(){
   const data=hist.map(h=>_chartMode==='max'?h.max:h.avg);
   const ctx=canvas.getContext('2d');
   const grad=ctx.createLinearGradient(0,0,0,190);
-  grad.addColorStop(0,'rgba(34,217,122,0.3)');
-  grad.addColorStop(1,'rgba(34,217,122,0)');
+  grad.addColorStop(0,'rgba(90,108,255,0.3)');
+  grad.addColorStop(1,'rgba(90,108,255,0)');
   weightChart=new Chart(ctx,{
     type:'line',
-    data:{labels,datasets:[{label:_chartMode==='max'?'Charge max (kg)':'Charge moy (kg)',data,fill:true,backgroundColor:grad,borderColor:'#22d97a',pointBackgroundColor:'#22d97a',pointBorderColor:'#060611',pointRadius:4,pointHoverRadius:6,tension:0.35,borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'},backgroundColor:'#1a1a35',titleColor:'#e8e8f5',bodyColor:'#22d97a'}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a90a8',font:{size:10,family:'JetBrains Mono'}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a90a8',font:{size:10,family:'JetBrains Mono'},callback:v=>v+'kg'},beginAtZero:false}}}
+    data:{labels,datasets:[{label:_chartMode==='max'?'Charge max (kg)':'Charge moy (kg)',data,fill:true,backgroundColor:grad,borderColor:'#5A6CFF',pointBackgroundColor:'#5A6CFF',pointBorderColor:'#ffffff',pointRadius:4,pointHoverRadius:6,tension:0.35,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'},backgroundColor:'#14161A',titleColor:'#e8e8f5',bodyColor:'#5A6CFF'}},scales:{x:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'}}},y:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'},callback:v=>v+'kg'},beginAtZero:false}}}
   });
 }
 
@@ -1096,9 +1104,9 @@ function drawRadar(){
         label:'Volume (kg·reps)',
         data:getMuscleVolumes(),
         fill:true,
-        backgroundColor:'rgba(34,217,122,0.15)',
-        borderColor:'rgba(34,217,122,0.9)',
-        pointBackgroundColor:'rgba(34,217,122,1)',
+        backgroundColor:'rgba(90,108,255,0.15)',
+        borderColor:'rgba(90,108,255,0.9)',
+        pointBackgroundColor:'rgba(90,108,255,1)',
         pointBorderColor:'#000',
         pointHoverBackgroundColor:'#fff',
         pointRadius:5,
@@ -1108,8 +1116,8 @@ function drawRadar(){
       responsive:true,
       plugins:{legend:{display:false}},
       scales:{r:{
-        grid:{color:'rgba(255,255,255,0.08)'},
-        angleLines:{color:'rgba(255,255,255,0.05)'},
+        grid:{color:'rgba(128,132,145,0.22)'},
+        angleLines:{color:'rgba(128,132,145,0.16)'},
         pointLabels:{color:'#e8e8f5',font:{family:'Rajdhani',size:12,weight:'600'}},
         ticks:{display:false,backdropColor:'transparent'},min:0,
       }}
@@ -1127,7 +1135,7 @@ function findExName(id){
 
 function renderCardio(){
   const age=getAge(), hrMax=220-age;
-  const zoneColors=['#4ade80','#38bdf8','#facc15','#fb923c','#f87171'];
+  const zoneColors=['#4ade80','#38bdf8','#facc15','#E8920A','#f87171'];
   let zonesHtml='';
   ZONE_DATA.forEach((z,i)=>{
     const lo=Math.round(hrMax*z.pct[0]/100), hi=Math.round(hrMax*z.pct[1]/100);
@@ -1138,9 +1146,9 @@ function renderCardio(){
     </div>`;
   });
   const runDays=[
-    {key:'mardi', icon:'⚡',name:'Mardi — Fractionné HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',   detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
-    {key:'jeudi', icon:'🏃',name:'Jeudi — Tempo',              desc:'Allure soutenue sur 5km pour développer ton seuil lactique.',detail:'5km continu, légèrement inconfortable mais constant'},
-    {key:'dimanche',icon:'🌿',name:'Dimanche — Sortie Longue', desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',    detail:'45–60min très lent, conversation possible'},
+    {key:'mardi', icon:'',name:'Mardi — Fractionné HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',   detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
+    {key:'jeudi', icon:'',name:'Jeudi — Tempo',              desc:'Allure soutenue sur 5km pour développer ton seuil lactique.',detail:'5km continu, légèrement inconfortable mais constant'},
+    {key:'dimanche',icon:'',name:'Dimanche — Sortie Longue', desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',    detail:'45–60min très lent, conversation possible'},
   ];
   let runCardsHtml='';
   runDays.forEach(rd=>{
@@ -1150,7 +1158,7 @@ function renderCardio(){
     const dateKey=dateToKey(d);
     const rl=getRunLog(dateKey);
     runCardsHtml+=`<div class="run-card">
-      <div class="run-title">${rd.icon} ${rd.name}</div>
+      <div class="run-title">${rd.name}</div>
       <div class="run-step" style="margin-bottom:6px">${rd.desc}</div>
       <div class="run-step" style="font-style:italic">${rd.detail}</div>
       <div class="run-log" style="margin-top:12px">
@@ -1166,14 +1174,14 @@ function renderCardio(){
       </div>
       <button class="run-done-btn${rl.done?' done':''}" id="crunBtn-${dateKey}"
         onclick="toggleRunDone2('${dateKey}')">
-        ${rl.done?'✅ Séance Running Terminée !':'Marquer comme faite'}
+        ${rl.done?'Séance terminée':'Marquer comme faite'}
       </button>
     </div>`;
   });
   document.getElementById('cardio-content').innerHTML=`
-  <div class="chip">🏃 Cardio & Running</div>
+  <div class="chip">Cardio & running</div>
   <div class="card" style="margin-bottom:12px">
-    <div class="stitle">💓 Calculateur Zones Cardio</div>
+    <div class="stitle">Zones cardio</div>
     <div class="age-row">
       <div>
         <div style="font-size:12px;color:var(--dim);margin-bottom:6px">Ton âge</div>
@@ -1186,8 +1194,8 @@ function renderCardio(){
   </div>
   <div class="card" style="margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleRunSection()">
-      <div class="stitle" style="margin-bottom:0">🏃 Séances Running</div>
-      <span id="runSectionChevron" style="color:var(--dim);font-size:18px;transition:transform .25s">›</span>
+      <div class="stitle" style="margin-bottom:0">Séances running</div>
+      <span id="runSectionChevron" style="color:var(--dim);font-size:18px;transition:transform .25s">${ic('chev')}</span>
     </div>
     <div id="runSection" style="display:none;margin-top:12px">${runCardsHtml}</div>
   </div>`;
@@ -1207,7 +1215,7 @@ function toggleRunDone2(dateKey){
   const v=!rl.done;
   saveRunLog(dateKey,'done',v);
   const btn=document.getElementById('crunBtn-'+dateKey);
-  if(btn){btn.className='run-done-btn'+(v?' done':'');btn.textContent=v?'✅ Séance Running Terminée !':'Marquer comme faite';}
+  if(btn){btn.className='run-done-btn'+(v?' done':'');btn.textContent=v?'Séance terminée':'Marquer comme faite';}
   markDayActive(dateKey);
 }
 
@@ -1216,7 +1224,7 @@ function calcZones(){
   const age=parseInt(inp?inp.value:25)||25;
   saveAge(age);
   const hrMax=220-age;
-  const zoneColors=['#4ade80','#38bdf8','#facc15','#fb923c','#f87171'];
+  const zoneColors=['#4ade80','#38bdf8','#facc15','#E8920A','#f87171'];
   let html='';
   ZONE_DATA.forEach((z,i)=>{
     const lo=Math.round(hrMax*z.pct[0]/100), hi=Math.round(hrMax*z.pct[1]/100);
@@ -1231,12 +1239,12 @@ function calcZones(){
 }
 
 function openDayDrawer(dayName,dateKey){
-  const {prog}=getEffectiveDayProgram(dateKey);
+  const {key:pKey,prog}=getEffectiveDayProgram(dateKey);
   if(!prog||prog.type==='rest')return;
-  document.getElementById('drawerTitle').textContent=prog.icon+' '+prog.fullName;
+  document.getElementById('drawerTitle').textContent=prog.fullName;
   const p=getDayProgress(dateKey,dayName);
   let html=`
-  <div class="card" style="margin-bottom:12px">
+  <div class="card hero" style="margin-bottom:12px;--c:${progColor(pKey)}">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <span style="font-size:12px;color:var(--dim)">${new Date(dateKey+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</span>
       <span style="font-family:var(--fm);font-size:13px;color:var(--green);font-weight:700">${p.pct}%</span>
@@ -1251,7 +1259,7 @@ function openDayDrawer(dayName,dateKey){
   }
 
   html+=`<div style="text-align:center;padding:8px 0 4px">
-    <button class="prog-switch-btn" style="font-size:12px" onclick="closeDrawer();showProgramPicker('${dateKey}')">🔄 Changer ce programme</button>
+    <button class="prog-switch-btn" style="font-size:12px" onclick="closeDrawer();showProgramPicker('${dateKey}')">Changer ce programme</button>
   </div>`;
   document.getElementById('drawerBody').innerHTML=html;
   document.getElementById('drawerOverlay').classList.add('open');
@@ -1302,7 +1310,7 @@ function renderProfile(){
   const avatarGrid=AVATARS.map(a=>`<button class="avatar-opt${a===avatar?' selected':''}" onclick="selectAvatar('${a}')">${a}</button>`).join('');
 
   document.getElementById('profile-content').innerHTML=`
-  <div class="chip">👤 Mon Profil</div>
+  <div class="chip">Profil</div>
   <div class="card profile-card green-glow">
     <div class="profile-top">
       <div class="avatar-display" id="avatarDisplay" onclick="toggleAvatarPicker()">${avatar}</div>
@@ -1319,43 +1327,43 @@ function renderProfile(){
     </div>
   </div>
 
-  <div class="stitle">🏆 Mes Statistiques</div>
+  <div class="stitle">Mes statistiques</div>
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-v" style="color:var(--orange)">${streak}</div><div class="stat-l">🔥 Streak</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--green)">${sessions}</div><div class="stat-l">💪 Séances totales</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--blue)">${reg}%</div><div class="stat-l">📈 Régularité 7j</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--purple);font-size:22px">${tonnage>0?(tonnage/1000).toFixed(1)+'t':'—'}</div><div class="stat-l">⚖️ Tonnage total</div></div>
+    <div class="stat-card"><div class="stat-v" style="color:var(--orange)">${streak}</div><div class="stat-l">Streak</div></div>
+    <div class="stat-card"><div class="stat-v" style="color:var(--green)">${sessions}</div><div class="stat-l">Séances totales</div></div>
+    <div class="stat-card"><div class="stat-v" style="color:var(--blue)">${reg}%</div><div class="stat-l">Régularité 7j</div></div>
+    <div class="stat-card"><div class="stat-v" style="color:var(--purple);font-size:22px">${tonnage>0?(tonnage/1000).toFixed(1)+'t':'—'}</div><div class="stat-l">Tonnage total</div></div>
   </div>
   ${tonnage>0&&eq?`<div class="card" style="text-align:center;padding:14px;margin-bottom:12px">
-    <div style="font-size:32px;margin-bottom:6px">${eq.emoji}</div>
+    <div class="eq-ic" style="margin:0 auto 8px">${ic('dumbbell')}</div>
     <div style="font-family:var(--fm);font-size:12px;color:var(--dim)">Tu as soulevé l'équivalent de</div>
     <div style="font-family:var(--fh);font-size:20px;font-weight:700;color:var(--text)">${eq.count} ${eq.name}</div>
     <div style="font-size:10px;color:var(--muted);margin-top:2px">au total sur tous tes entraînements</div>
   </div>`:''}
 
-  <div class="stitle">⚙️ Mes Donnees</div>
+  <div class="stitle">Mes données</div>
   <div class="card" style="margin-bottom:12px">
     <div class="bw-row" style="margin-bottom:14px">
-      <div class="bw-lbl">⚖️ Poids de corps</div>
+      <div class="bw-lbl">Poids de corps</div>
       <input class="big-inp" type="number" id="profBwInp" value="${bw}" min="30" max="200" inputmode="decimal" style="width:75px">
       <span class="bw-lbl">kg</span>
-      <button class="btn-calc" onclick="saveProfBW()" style="padding:8px 12px;font-size:13px">✓</button>
+      <button class="btn-calc" onclick="saveProfBW()" style="padding:8px 12px;font-size:13px">${ic('check')}</button>
     </div>
     <div class="bw-row">
-      <div class="bw-lbl">🎂 Âge</div>
+      <div class="bw-lbl">Âge</div>
       <input class="big-inp" type="number" id="profAgeInp" value="${age}" min="10" max="99" inputmode="numeric" style="width:75px">
       <span class="bw-lbl">ans</span>
-      <button class="btn-calc" onclick="saveProfAge()" style="padding:8px 12px;font-size:13px">✓</button>
+      <button class="btn-calc" onclick="saveProfAge()" style="padding:8px 12px;font-size:13px">${ic('check')}</button>
     </div>
   </div>
 
-  <div class="stitle">⚠️ Zone Danger</div>
+  <div class="stitle">Zone danger</div>
   <div class="card danger-card">
     <div style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.5">
       Réinitialise <b>TOUTES</b> tes données : séances, records, tonnage, streak, check-ins.<br>
-      <span style="color:var(--red);font-size:11px">⚠️ Cette action est irréversible.</span>
+      <span style="color:var(--red);font-size:11px">Cette action est irréversible.</span>
     </div>
-    <button class="btn-danger" onclick="confirmReset()">🗑️ Reinitialiser toutes les données</button>
+    <button class="btn-danger" onclick="confirmReset()">Réinitialiser toutes les données</button>
   </div>`;
 }
 
@@ -1379,18 +1387,18 @@ function selectAvatar(a){
 
 function saveProfBW(){
   const inp=document.getElementById('profBwInp');
-  if(inp){saveBodyWeight(inp.value);showToast('✅ Poids de corps sauvegardé');}
+  if(inp){saveBodyWeight(inp.value);showToast('Poids de corps sauvegardé');}
 }
 
 function saveProfAge(){
   const inp=document.getElementById('profAgeInp');
-  if(inp){saveAge(parseInt(inp.value)||25);showToast('✅ Âge sauvegardé');}
+  if(inp){saveAge(parseInt(inp.value)||25);showToast('Âge sauvegardé');}
 }
 
 function confirmReset(){
   const html=`<div class="modal-overlay" id="resetModal" onclick="if(event.target.id==='resetModal')closeModal()">
     <div class="modal-box" style="max-width:360px">
-      <div class="modal-hdr"><div class="modal-title" style="color:var(--red)">⚠️ Confirmer la réinitialisation</div></div>
+      <div class="modal-hdr"><div class="modal-title" style="color:var(--red)">Tout effacer ?</div></div>
       <div style="font-size:13px;color:var(--dim);margin:12px 0 20px;line-height:1.6">
         Tu es sur le point de supprimer <b style="color:var(--text)">toutes tes données</b> définitivement.<br><br>
         Séances · Records · Tonnage · Streak · Check-ins · Tout.
@@ -1409,7 +1417,7 @@ function executeReset(){
   localStorage.removeItem('fitcore');
   saveProfile({...prof,since:todayKey()});
   closeModal();
-  showToast('✅ Données réinitialisées');
+  showToast('Données réinitialisées');
   updateStreak();updateReg();
   renderProfile();
 }

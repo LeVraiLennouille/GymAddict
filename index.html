@@ -2,15 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>GymAddict</title>
 
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0c0f18">
+  <meta name="theme-color" content="#ECEDF0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0A0B0E" media="(prefers-color-scheme: dark)">
   <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Gym">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 
@@ -19,18 +20,17 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
-</head>
 <body>
 <header class="hdr">
-  <div><div class="logo">GymAddict</div><span class="logo-sub">HYBRID TRACKER</span></div>
+  <div><div class="logo">GymAddict</div><span class="logo-sub">Hybrid tracker</span></div>
   <div class="hdr-right">
-    <div class="streak" id="streakBadge">🔥 0j</div>
+    <div class="save-ind" id="saveInd"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Enregistré</div>
+    <div class="streak" id="streakBadge">0 j</div>
     <div class="reg" id="regBadge">—%</div>
-    <div class="save-ind" id="saveInd">✓ Enregistré</div>
   </div>
 </header>
 <div class="tab active" id="tab-today"><div id="today-content"></div></div>
@@ -46,12 +46,12 @@
   </div>
   <div class="tmr-btns">
     <button class="btn-add" onclick="addTime(30)">+30s</button>
-    <button class="btn-x" onclick="dismissTimer()">✕</button>
+    <button class="btn-x" onclick="dismissTimer()" aria-label="Fermer le minuteur"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
 </div>
 <div class="pr-pop" id="prPopup">
-  <div class="pr-emoji">🏆</div>
-  <div class="pr-title">NOUVEAU RECORD !</div>
+  <div class="pr-emoji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M9 20h6M10 17h4"/></svg></div>
+  <div class="pr-title">Nouveau record !</div>
   <div class="pr-name" id="prPopName">—</div>
   <div class="pr-val" id="prPopVal">—</div>
   <div class="pr-onerm" id="prOnerm" style="display:none"></div>
@@ -60,18 +60,23 @@
 <div class="drawer" id="dayDrawer">
   <div class="drawer-handle"></div>
   <div class="drawer-hdr">
-    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <button class="drawer-close" onclick="closeDrawer()" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div class="drawer-title" id="drawerTitle">Séance</div>
   </div>
   <div class="drawer-body" id="drawerBody"></div>
 </div>
 <nav class="bnav">
-  <button class="nbtn on" id="nav-today" onclick="switchTab('today')"><span class="ni">🏠</span>Aujourd'hui</button>
-  <button class="nbtn" id="nav-week" onclick="switchTab('week')"><span class="ni">📅</span>Programme</button>
-  <button class="nbtn" id="nav-stats" onclick="switchTab('stats')"><span class="ni">📊</span>Stats</button>
-  <button class="nbtn" id="nav-cardio" onclick="switchTab('cardio')"><span class="ni">🏃</span>Cardio</button>
-  <button class="nbtn" id="nav-profile" onclick="switchTab('profile')"><span class="ni">👤</span>Profil</button>
+  <button class="nbtn on" id="nav-today" onclick="switchTab('today')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Séance</button>
+  <button class="nbtn" id="nav-week" onclick="switchTab('week')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Programme</button>
+  <button class="nbtn" id="nav-stats" onclick="switchTab('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Stats</button>
+  <button class="nbtn" id="nav-cardio" onclick="switchTab('cardio')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Cardio</button>
+  <button class="nbtn" id="nav-profile" onclick="switchTab('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profil</button>
 </nav>
 <script src="script.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+  }
+</script>
 </body>
 </html>
