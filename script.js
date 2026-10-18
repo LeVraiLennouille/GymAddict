@@ -133,6 +133,8 @@ const ZONE_DATA = [
   {name:'Zone 4',label:'Tempo / Seuil lactique',pct:[80,90]},
   {name:'Zone 5',label:'VO2max / Sprint',pct:[90,100]},
 ];
+// Échelle de chaleur : bleu (calme) → vert → jaune → orange → rouge (max)
+const ZONE_COLORS=['#5B96FF','#34D07A','#F5B700','#FF8A3D','#FF4D5A'];
 
 function gs(){try{return JSON.parse(localStorage.getItem('fitcore')||'{}')}catch{return {}}}
 function ss(d){localStorage.setItem('fitcore',JSON.stringify(d))}
@@ -565,8 +567,8 @@ function computeReg(){
   return Math.round(count/7*100);
 }
 
-function updateStreak(){document.getElementById('streakBadge').textContent=computeStreak()+' j';}
-function updateReg(){document.getElementById('regBadge').textContent=computeReg()+'%';}
+function updateStreak(){document.getElementById('streakVal').textContent=computeStreak()+' j';}
+function updateReg(){document.getElementById('regVal').textContent=computeReg()+'%';}
 
 let _saveTimer;
 function triggerSave(){
@@ -595,6 +597,7 @@ function startTimer(sec,exName){
     const m=Math.floor(_timerSec/60),s=_timerSec%60;
     d.textContent=m+':'+(s<10?'0':'')+s;
     d.className='tmr-time'+(_timerSec<=10?' urgent':'');
+    w.classList.toggle('urgent',_timerSec<=10&&_timerSec>0);
     if(_timerSec<=0){
       clearInterval(_timerInterval);_timerInterval=null;
       d.textContent='GO !';d.className='tmr-time';
@@ -738,12 +741,15 @@ function renderExBlock(ex,dateKey){
   const safeNameDisplay=ex.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
   const noteEscaped=(note.settings||'').replace(/"/g,'&quot;');
 
+  let doneN=0;for(let i=0;i<ex.sets;i++)if(getSet(dateKey,ex.id,i).done)doneN++;
   return `
   <div class="ex-block">
-    <div class="ex-header">
+    <div class="ex-header" onclick="toggleExCard('${ex.id}')">
       <div class="ex-name">${ex.name}</div>
       ${badge}
+      <span class="ex-count">${doneN}/${ex.sets}</span><span class="ex-check">${ic('check')}</span>
     </div>
+    <div class="ex-body">
     <div class="ex-meta">${ex.sets} séries · ${ex.repsLabel}${exPR?` · PR : <b style="color:var(--orange)">${exPR.weight}kg × ${exPR.reps}reps</b>`:''}
     </div>
     <div class="sets-wrap">${setRows}</div>
@@ -761,7 +767,57 @@ function renderExBlock(ex,dateKey){
         ${!ex.isTime?`<button class="warmup-btn" onclick="showWarmupModal('${ex.id}','${safeNameDisplay}')">Échauffement</button>`:''}
       </div>
     </div>
+    </div>
   </div>`;
+}
+
+function toggleExCard(id){const c=document.getElementById('exc-'+id);if(c&&c.classList.contains('done'))c.classList.toggle('open');}
+function refreshExCards(dateKey,scroll){
+  let hasActive=false,justDone=false,activeEl=null;
+  document.querySelectorAll('.ex-card').forEach(c=>{
+    const id=c.dataset.ex,n=+c.dataset.sets;let d=0;
+    for(let i=0;i<n;i++)if(getSet(dateKey,id,i).done)d++;
+    const full=n>0&&d===n;
+    if(full&&!c.classList.contains('done'))justDone=true;
+    c.classList.toggle('done',full);
+    if(!full)c.classList.remove('open');
+    const a=!full&&!hasActive;if(a){hasActive=true;activeEl=c;}
+    c.classList.toggle('active',a);
+    const k=c.querySelector('.ex-count');if(k)k.textContent=d+'/'+n;
+  });
+  if(scroll&&justDone&&activeEl)requestAnimationFrame(()=>activeEl.scrollIntoView({behavior:'smooth',block:'start'}));
+}
+function getTonnageFor(dateKey){
+  const {prog}=getEffectiveDayProgram(dateKey);const d=gs();
+  if(!prog||!d.workouts||!d.workouts[dateKey])return 0;
+  let t=0;
+  prog.exercises.forEach(ex=>{if(ex.isTime)return;(d.workouts[dateKey][ex.id]||[]).forEach(s=>{if(s&&s.done)t+=(parseFloat(s.weight)||0)*(parseFloat(s.reps)||ex.defaultReps||10);});});
+  return Math.round(t);
+}
+function restDayHtml(dateKey){
+  const fmt=(k,o)=>new Date(k+'T12:00:00').toLocaleDateString('fr-FR',o);
+  const t=new Date(dateKey+'T12:00:00');let next='';
+  for(let i=1;i<=7&&!next;i++){
+    const dk=dateToKey(new Date(t.getFullYear(),t.getMonth(),t.getDate()+i));
+    const {prog}=getEffectiveDayProgram(dk);
+    if(prog&&prog.type!=='rest')next=`<div class="rest-row"><span class="rest-k">Prochaine séance</span><span class="rest-v">${prog.fullName}<small>${fmt(dk,{weekday:'long',day:'numeric',month:'long'})}</small></span></div>`;
+  }
+  const last=getActiveDays().filter(k=>k<dateKey).sort().pop();
+  let lastRow='';
+  if(last){
+    const {prog}=getEffectiveDayProgram(last);const tn=getTonnageFor(last);
+    lastRow=`<div class="rest-row"><span class="rest-k">Dernière séance</span><span class="rest-v">${prog&&prog.type!=='rest'?prog.fullName:'Séance'}<small>${fmt(last,{weekday:'long',day:'numeric',month:'long'})}${tn?' · '+tn.toLocaleString('fr-FR')+' kg':''}</small></span></div>`;
+  }
+  return `<div class="rest-day">
+    <div class="rest-msg">REPOS</div>
+    <div class="rest-sub">La récupération, c'est aussi de l'entraînement.</div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card k-yellow"><div class="stat-v">${computeStreak()}</div><div class="stat-l">Jours de streak</div></div>
+    <div class="stat-card k-green"><div class="stat-v">${computeReg()}%</div><div class="stat-l">Régularité 7j</div></div>
+  </div>
+  ${(next||lastRow)?`<div class="card">${next}${lastRow}</div>`:''}
+  <button class="prog-switch-btn rest-switch" onclick="showProgramPicker('${dateKey}')">Choisir un programme</button>`;
 }
 
 function toggleSet(dateKey,exId,idx,exName,restSec){
@@ -782,6 +838,7 @@ function toggleSet(dateKey,exId,idx,exName,restSec){
   }
   updateDayProgressBar(dateKey);
   updateTonnageCard();
+  refreshExCards(dateKey,true);
 }
 
 function onWeightChange(dateKey,exId,idx,exName,val){
@@ -812,7 +869,7 @@ function updateDayProgressBar(dateKey){
   const txt=document.getElementById('progtxt-'+dateKey);
   if(bar)bar.style.width=p.pct+'%';
   const hp=document.getElementById('heropct-'+dateKey);if(hp)hp.textContent=p.pct;
-  if(txt)txt.textContent=p.done+'/'+p.total+' séries · '+p.pct+'%';
+  if(txt)txt.textContent=p.done+'/'+p.total+' séries';
 }
 
 function renderToday(){
@@ -821,15 +878,7 @@ function renderToday(){
   const isOverridden=getDayProgramOverride(dateKey)!==null;
   const el=document.getElementById('today-content');
   if(!prog){el.innerHTML='<div class="empty">Programme indisponible</div>';return;}
-  if(prog.type==='rest'){
-    el.innerHTML=`<div class="rest-day">
-      
-      <div class="rest-msg">REPOS</div>
-      <div class="rest-sub">Laisse ton corps récupérer.<br>La récupération c'est aussi de l'entraînement !</div>
-      <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">Choisir un programme</button>
-    </div>`;
-    return;
-  }
+  if(prog.type==='rest'){el.innerHTML=restDayHtml(dateKey);return;}
   const p=getDayProgress(dateKey,dayName);
   const readiness=getReadiness(dateKey);
   let rBadgeHtml='';
@@ -862,26 +911,26 @@ function renderToday(){
         <button class="prog-switch-btn" onclick="showProgramPicker('${dateKey}')">Changer</button>
       </div>
     </div>
-    <div class="hero-pct"><span id="heropct-${dateKey}">${p.pct}</span><small>%</small><em id="progtxt-${dateKey}">${p.done}/${p.total} séries · ${p.pct}%</em></div>
+    <div class="hero-pct"><span id="heropct-${dateKey}">${p.pct}</span><small>%</small><em id="progtxt-${dateKey}">${p.done}/${p.total} séries</em></div>
     <div class="prog-wrap"><div class="prog-fill" id="prog-${dateKey}" style="width:${p.pct}%"></div></div>
   </div>`;
   if(prog.exercises.length>0){
-    html+=`<div class="stitle">Exercices</div><div class="card">`;
-    prog.exercises.forEach(ex=>{html+=renderExBlock(ex,dateKey);});
-    html+=`</div>`;
+    html+=`<div class="stitle">Exercices</div>`;
+    prog.exercises.forEach(ex=>{html+=`<div class="card ex-card" id="exc-${ex.id}" data-ex="${ex.id}" data-sets="${ex.sets}" style="--c:${progColor(dayName)}">${renderExBlock(ex,dateKey)}</div>`;});
   }
 
   html+=`<div class="card tonnage-card" id="tonnageCard" style="${tonnage>0?'display:block':'display:none'}">
-    <div style="display:flex;align-items:center;gap:14px">
+    <div class="tn-row">
       <div class="eq-ic">${ic('dumbbell')}</div>
       <div>
-        <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Tonnage d'aujourd'hui</div>
-        <div id="tonnageVal" style="font-family:var(--fm);font-size:26px;font-weight:700;color:var(--green)">${tonnage.toLocaleString('fr-FR')} kg</div>
-        <div id="tonnageEq" style="font-size:12px;color:var(--dim)">${eq?`soit ${eq.count} ${eq.name}`:''}</div>
+        <div class="tn-lbl">Tonnage d'aujourd'hui</div>
+        <div id="tonnageVal" class="tn-val">${tonnage.toLocaleString('fr-FR')} kg</div>
+        <div id="tonnageEq" class="tn-eq">${eq?`soit ${eq.count} ${eq.name}`:''}</div>
       </div>
     </div>
   </div>`;
   el.innerHTML=html;
+  refreshExCards(dateKey,false);
   setTimeout(()=>showReadinessPopup(),900);
 }
 
@@ -993,8 +1042,8 @@ function renderStats(){
   document.getElementById('stats-content').innerHTML=`
   <div class="chip">Statistiques</div>
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-v" style="color:var(--orange)">${computeStreak()}</div><div class="stat-l">Jours de streak</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--green)">${computeReg()}%</div><div class="stat-l">Régularité 7j</div></div>
+    <div class="stat-card k-yellow"><div class="stat-v">${computeStreak()}</div><div class="stat-l">Jours de streak</div></div>
+    <div class="stat-card k-green"><div class="stat-v">${computeReg()}%</div><div class="stat-l">Régularité 7j</div></div>
   </div>
   <div class="card" style="margin-bottom:12px">
     <div class="stitle">Calendrier d'activité</div>
@@ -1068,7 +1117,7 @@ function renderWeightChart(){
     const ctx=canvas.getContext('2d');
     const grad=ctx.createLinearGradient(0,0,0,190);
     grad.addColorStop(0,'rgba(232,146,10,0.3)');grad.addColorStop(1,'rgba(232,146,10,0)');
-    weightChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Tonnage (kg·reps)',data,backgroundColor:'rgba(232,146,10,0.6)',borderColor:'#E8920A',borderWidth:2,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString('fr-FR')+' kg·reps'},backgroundColor:'#14161A',titleColor:'#e8e8f5',bodyColor:'#E8920A'}},scales:{x:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'}}},y:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'},callback:v=>v+'kg'},beginAtZero:true}}}});
+    weightChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Tonnage (kg·reps)',data,backgroundColor:'rgba(255,90,102,0.6)',borderColor:'#FF5A66',borderWidth:2,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString('fr-FR')+' kg·reps'},backgroundColor:'#14161A',titleColor:'#e8e8f5',bodyColor:'#FF5A66'}},scales:{x:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'}}},y:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'},callback:v=>v+'kg'},beginAtZero:true}}}});
     return;
   }
   const hist=getWeightHistory(exId);
@@ -1083,12 +1132,12 @@ function renderWeightChart(){
   const data=hist.map(h=>_chartMode==='max'?h.max:h.avg);
   const ctx=canvas.getContext('2d');
   const grad=ctx.createLinearGradient(0,0,0,190);
-  grad.addColorStop(0,'rgba(90,108,255,0.3)');
-  grad.addColorStop(1,'rgba(90,108,255,0)');
+  grad.addColorStop(0,'rgba(245,183,0,0.3)');
+  grad.addColorStop(1,'rgba(245,183,0,0)');
   weightChart=new Chart(ctx,{
     type:'line',
-    data:{labels,datasets:[{label:_chartMode==='max'?'Charge max (kg)':'Charge moy (kg)',data,fill:true,backgroundColor:grad,borderColor:'#5A6CFF',pointBackgroundColor:'#5A6CFF',pointBorderColor:'#ffffff',pointRadius:4,pointHoverRadius:6,tension:0.35,borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'},backgroundColor:'#14161A',titleColor:'#e8e8f5',bodyColor:'#5A6CFF'}},scales:{x:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'}}},y:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'},callback:v=>v+'kg'},beginAtZero:false}}}
+    data:{labels,datasets:[{label:_chartMode==='max'?'Charge max (kg)':'Charge moy (kg)',data,fill:true,backgroundColor:grad,borderColor:'#F5B700',pointBackgroundColor:'#F5B700',pointBorderColor:'#ffffff',pointRadius:4,pointHoverRadius:6,tension:0.35,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'},backgroundColor:'#14161A',titleColor:'#e8e8f5',bodyColor:'#F5B700'}},scales:{x:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'}}},y:{grid:{color:'rgba(128,132,145,0.16)'},ticks:{color:'#8a90a8',font:{size:10,family:'Figtree'},callback:v=>v+'kg'},beginAtZero:false}}}
   });
 }
 
@@ -1104,9 +1153,9 @@ function drawRadar(){
         label:'Volume (kg·reps)',
         data:getMuscleVolumes(),
         fill:true,
-        backgroundColor:'rgba(90,108,255,0.15)',
-        borderColor:'rgba(90,108,255,0.9)',
-        pointBackgroundColor:'rgba(90,108,255,1)',
+        backgroundColor:'rgba(255,90,102,0.18)',
+        borderColor:'rgba(255,90,102,0.95)',
+        pointBackgroundColor:'rgba(255,90,102,1)',
         pointBorderColor:'#000',
         pointHoverBackgroundColor:'#fff',
         pointRadius:5,
@@ -1118,7 +1167,7 @@ function drawRadar(){
       scales:{r:{
         grid:{color:'rgba(128,132,145,0.22)'},
         angleLines:{color:'rgba(128,132,145,0.16)'},
-        pointLabels:{color:'#e8e8f5',font:{family:'Rajdhani',size:12,weight:'600'}},
+        pointLabels:{color:'#e8e8f5',font:{family:'Figtree',size:12,weight:'600'}},
         ticks:{display:false,backdropColor:'transparent'},min:0,
       }}
     }
@@ -1135,7 +1184,7 @@ function findExName(id){
 
 function renderCardio(){
   const age=getAge(), hrMax=220-age;
-  const zoneColors=['#4ade80','#38bdf8','#facc15','#E8920A','#f87171'];
+  const zoneColors=ZONE_COLORS;
   let zonesHtml='';
   ZONE_DATA.forEach((z,i)=>{
     const lo=Math.round(hrMax*z.pct[0]/100), hi=Math.round(hrMax*z.pct[1]/100);
@@ -1224,7 +1273,7 @@ function calcZones(){
   const age=parseInt(inp?inp.value:25)||25;
   saveAge(age);
   const hrMax=220-age;
-  const zoneColors=['#4ade80','#38bdf8','#facc15','#E8920A','#f87171'];
+  const zoneColors=ZONE_COLORS;
   let html='';
   ZONE_DATA.forEach((z,i)=>{
     const lo=Math.round(hrMax*z.pct[0]/100), hi=Math.round(hrMax*z.pct[1]/100);
@@ -1274,9 +1323,12 @@ function closeDrawer(){
   renderWeek();
 }
 
-const AVATARS=['💪','🏋️','🔥','⚡','🦁','🐺','🦅','🏆','👊','🎯','🚀','🧠','🐉','⚔️','🌟'];
+const AVATARS=['red','blue','yellow','green','grey','white'];
+const avatarKey=a=>AVATARS.includes(a)?a:'red';
+function avatarHtml(a,pseudo){const ch=(pseudo||'').trim().charAt(0).toUpperCase();return `<span class="av av-${avatarKey(a)}">${ch||ic('dumbbell')}</span>`;}
+function refreshAvatar(){const d=document.getElementById('avatarDisplay');if(d){const p=getProfile();d.innerHTML=avatarHtml(p.avatar,p.pseudo);}}
 
-function getProfile(){const d=gs();return d.profile||{pseudo:'',avatar:'💪',since:todayKey()};}
+function getProfile(){const d=gs();return d.profile||{pseudo:'',avatar:'red',since:todayKey()};}
 function saveProfile(p){const d=gs();d.profile={...getProfile(),...p};ss(d);triggerSave();}
 
 function getTotalSessions(){return getActiveDays().length;}
@@ -1294,7 +1346,7 @@ function getTotalTonnageAllTime(){
 function renderProfile(){
   const prof=getProfile();
   const pseudo=prof.pseudo||'';
-  const avatar=prof.avatar||'💪';
+  const avatar=avatarKey(prof.avatar);
   const since=prof.since||todayKey();
   const streak=computeStreak();
   const reg=computeReg();
@@ -1307,17 +1359,17 @@ function renderProfile(){
   const sinceDate=new Date(since+'T12:00:00');
   const daysSince=Math.round((new Date()-sinceDate)/(1000*60*60*24));
 
-  const avatarGrid=AVATARS.map(a=>`<button class="avatar-opt${a===avatar?' selected':''}" onclick="selectAvatar('${a}')">${a}</button>`).join('');
+  const avatarGrid=AVATARS.map(a=>`<button class="avatar-opt${a===avatar?' selected':''}" data-a="${a}" aria-label="Avatar ${a}" onclick="selectAvatar('${a}')">${avatarHtml(a,pseudo)}</button>`).join('');
 
   document.getElementById('profile-content').innerHTML=`
   <div class="chip">Profil</div>
   <div class="card profile-card green-glow">
     <div class="profile-top">
-      <div class="avatar-display" id="avatarDisplay" onclick="toggleAvatarPicker()">${avatar}</div>
+      <div class="avatar-display" id="avatarDisplay" onclick="toggleAvatarPicker()">${avatarHtml(avatar,pseudo)}</div>
       <div class="profile-info">
         <input class="profile-pseudo-inp" id="pseudoInp" type="text" placeholder="Ton pseudonyme…"
           value="${pseudo}" maxlength="24" autocomplete="off" spellcheck="false"
-          oninput="debounce('pseudo',()=>{saveProfile({pseudo:document.getElementById('pseudoInp').value.trim()});updateHeaderGreeting();},600)">
+          oninput="debounce('pseudo',()=>{saveProfile({pseudo:document.getElementById('pseudoInp').value.trim()});refreshAvatar();},600)">
         <div class="profile-since">Membre depuis ${sinceDate.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})} · <b style="color:var(--green)">${daysSince}j</b></div>
       </div>
     </div>
@@ -1329,10 +1381,10 @@ function renderProfile(){
 
   <div class="stitle">Mes statistiques</div>
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-v" style="color:var(--orange)">${streak}</div><div class="stat-l">Streak</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--green)">${sessions}</div><div class="stat-l">Séances totales</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--blue)">${reg}%</div><div class="stat-l">Régularité 7j</div></div>
-    <div class="stat-card"><div class="stat-v" style="color:var(--purple);font-size:22px">${tonnage>0?(tonnage/1000).toFixed(1)+'t':'—'}</div><div class="stat-l">Tonnage total</div></div>
+    <div class="stat-card k-red"><div class="stat-v">${streak}</div><div class="stat-l">Streak</div></div>
+    <div class="stat-card k-blue"><div class="stat-v">${sessions}</div><div class="stat-l">Séances totales</div></div>
+    <div class="stat-card k-yellow"><div class="stat-v">${reg}%</div><div class="stat-l">Régularité 7j</div></div>
+    <div class="stat-card k-green"><div class="stat-v">${tonnage>0?(tonnage/1000).toFixed(1)+'t':'—'}</div><div class="stat-l">Tonnage total</div></div>
   </div>
   ${tonnage>0&&eq?`<div class="card" style="text-align:center;padding:14px;margin-bottom:12px">
     <div class="eq-ic" style="margin:0 auto 8px">${ic('dumbbell')}</div>
@@ -1376,10 +1428,9 @@ function toggleAvatarPicker(){
 
 function selectAvatar(a){
   saveProfile({avatar:a});
-  const disp=document.getElementById('avatarDisplay');
-  if(disp)disp.textContent=a;
+  refreshAvatar();
   document.querySelectorAll('.avatar-opt').forEach(btn=>{
-    btn.classList.toggle('selected',btn.textContent===a);
+    btn.classList.toggle('selected',btn.dataset.a===a);
   });
   const picker=document.getElementById('avatarPicker');
   if(picker)picker.style.display='none';

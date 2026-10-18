@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes">
 
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Gym">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 
@@ -28,9 +28,9 @@
 <header class="hdr">
   <div><div class="logo">GymAddict</div><span class="logo-sub">Hybrid tracker</span></div>
   <div class="hdr-right">
-    <div class="save-ind" id="saveInd"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Enregistré</div>
-    <div class="streak" id="streakBadge">0 j</div>
-    <div class="reg" id="regBadge">—%</div>
+    <div class="save-ind" id="saveInd" role="status"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="lbl">Enregistré</span></div>
+    <div class="streak" title="Jours consécutifs"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.2 2-4 .2 1.2.8 2 1.8 2.2C10.5 8.5 11 5.5 12 3z"/></svg><span id="streakVal">0 j</span></div>
+    <div class="reg" title="Régularité sur 7 jours"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg><span id="regVal">—%</span></div>
   </div>
 </header>
 <div class="tab active" id="tab-today"><div id="today-content"></div></div>
