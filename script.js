@@ -5,7 +5,13 @@ const ICONS={
   refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
   undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
   star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8L3.5 9.7l5.9-.8z"/>',
-  dumbbell:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>'
+  dumbbell:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
+  back:'<path d="M15 6l-6 6 6 6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  up:'<path d="M6 14l6-6 6 6"/>',
+  down:'<path d="M6 10l6 6 6-6"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12M9 7V4h6v3"/>',
+  edit:'<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l3 3"/>'
 };
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
 const EX_LUNDI = [
@@ -85,36 +91,27 @@ const EX_ABDOS = [
   {id:"ab_wheel",        name:"Roue Abdominale",          sets:3, repsLabel:"8–12 reps",      defaultReps:10, type:"compound",  muscles:["abdos"], restSec:90},
 ];
 
-const PROGRAM = {
-  pecs_tri: {label:"Pecs & Triceps", icon:"", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
-  dos_ep:   {label:"Dos & Épaules",  icon:"", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
-  abdos:    {label:"Abdos",          icon:"", fullName:"Abdominaux & Core",      type:"gym", exercises: EX_ABDOS},
-  jambes:   {label:"Jambes",         icon:"", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
-  epaules:  {label:"Épaules",        icon:"", fullName:"Épaules & Trapèzes",    type:"gym", exercises: EX_JEUDI},
-  rappel:   {label:"Rappel",         icon:"", fullName:"Rappel Haut du Corps",  type:"gym", exercises: EX_VENDREDI},
-  repos:    {label:"Repos",          icon:"", fullName:"Repos Total",            type:"rest",exercises:[]},
-
-  lundi:    {label:"Pecs & Triceps", icon:"", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_LUNDI},
-  mardi:    {label:"Dos & Épaules",  icon:"", fullName:"Dos & Épaules",          type:"gym", exercises: EX_MARDI},
-  mercredi: {label:"Jambes",         icon:"", fullName:"Jambes & Mollets",       type:"gym", exercises: EX_MERCREDI},
-  jeudi:    {label:"Pecs & Triceps", icon:"", fullName:"Pectoraux & Triceps",    type:"gym", exercises: EX_JEUDI},
-  vendredi: {label:"Dos & Épaules",  icon:"", fullName:"Dos & Épaules",          type:"gym", exercises: EX_VENDREDI},
-  samedi:   {label:"Repos",          icon:"", fullName:"Repos Total",            type:"rest",exercises:[]},
-  dimanche: {label:"Repos",          icon:"", fullName:"Repos Total",            type:"rest",exercises:[]},
+/* Programmes par défaut. L'utilisateur peut les modifier depuis l'éditeur (Programme > Modifier mes séances) ;
+   sa version personnalisée est stockée dans localStorage (fitcore.program) et appliquée au démarrage. */
+const DEFAULT_PROGRAMS = {
+  pecs_tri: {label:"Pecs & Triceps", fullName:"Pectoraux & Triceps",   type:"gym",  color:"red",    exercises: EX_LUNDI},
+  dos_ep:   {label:"Dos & Épaules",  fullName:"Dos & Épaules",         type:"gym",  color:"blue",   exercises: EX_MARDI},
+  abdos:    {label:"Abdos",          fullName:"Abdominaux & Core",     type:"gym",  color:"green",  exercises: EX_ABDOS},
+  jambes:   {label:"Jambes",         fullName:"Jambes & Mollets",      type:"gym",  color:"yellow", exercises: EX_MERCREDI},
+  epaules:  {label:"Épaules",        fullName:"Épaules & Trapèzes",    type:"gym",  color:"blue",   exercises: EX_JEUDI},
+  rappel:   {label:"Rappel",         fullName:"Rappel Haut du Corps",  type:"gym",  color:"red",    exercises: EX_VENDREDI},
+  repos:    {label:"Repos",          fullName:"Repos Total",           type:"rest", color:"grey",   exercises: []}
 };
+const DEFAULT_ORDER = ['pecs_tri','dos_ep','abdos','jambes','epaules','rappel','repos'];
+const DEFAULT_WEEKLY = {lundi:'pecs_tri', mardi:'dos_ep', mercredi:'abdos', jeudi:'pecs_tri', vendredi:'dos_ep', samedi:'repos', dimanche:'repos'};
 
-const PROG_COLORS={pecs_tri:'var(--c-red)',lundi:'var(--c-red)',jeudi:'var(--c-red)',rappel:'var(--c-red)',dos_ep:'var(--c-blue)',mardi:'var(--c-blue)',vendredi:'var(--c-blue)',epaules:'var(--c-blue)',abdos:'var(--c-green)',jambes:'var(--c-yellow)',mercredi:'var(--c-yellow)',repos:'#3A3E48',samedi:'#3A3E48',dimanche:'#3A3E48'};
-const progColor=k=>PROG_COLORS[k]||'var(--c-green)';
-const PROGRAM_PICKER_KEYS = ['pecs_tri','dos_ep','abdos','jambes','epaules','rappel','repos'];
-const WEEKLY_SUGGESTIONS = {
-  lundi:    'pecs_tri',
-  mardi:    'dos_ep',
-  mercredi: 'abdos',
-  jeudi:    'pecs_tri',
-  vendredi: 'dos_ep',
-  samedi:   'repos',
-  dimanche: 'repos',
-};
+/* Objets « vivants » : remplis par applyProgram() */
+const PROGRAM = {};
+const PROGRAM_PICKER_KEYS = [];
+const WEEKLY_SUGGESTIONS = {};
+
+const COLOR_MAP = {red:'var(--c-red)', blue:'var(--c-blue)', yellow:'var(--c-yellow)', green:'var(--c-green)', grey:'#3A3E48'};
+const progColor = k => { const p = PROGRAM[k]; return (p && COLOR_MAP[p.color]) || 'var(--c-green)'; };
 
 const DAY_LABELS = {
   lundi:'Lundi', mardi:'Mardi', mercredi:'Mercredi',
@@ -141,6 +138,96 @@ function ss(d){localStorage.setItem('fitcore',JSON.stringify(d))}
 function dateToKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function todayKey(){return dateToKey(new Date());}
 function getDayName(){return DAY_JS_MAP[new Date().getDay()]}
+
+/* ============================================================
+   CONFIGURATION DU PROGRAMME (données éditables)
+   ============================================================ */
+const cloneJSON = o => JSON.parse(JSON.stringify(o));
+const EX_TYPES = ['compound','isolation','echauffement'];
+
+function defaultProgramConfig(){
+  return {v:1, programs:cloneJSON(DEFAULT_PROGRAMS), order:DEFAULT_ORDER.slice(), weekly:Object.assign({},DEFAULT_WEEKLY)};
+}
+function sanitizeEx(e){
+  const o = Object.assign({}, e);
+  o.id = String(e.id); o.name = String(e.name);
+  o.sets = Math.min(12, Math.max(1, parseInt(e.sets) || 3));
+  o.defaultReps = Math.max(1, parseInt(e.defaultReps) || 10);
+  o.restSec = Math.min(600, Math.max(10, parseInt(e.restSec) || 90));
+  o.type = EX_TYPES.includes(e.type) ? e.type : 'isolation';
+  o.muscles = Array.isArray(e.muscles) ? e.muscles.map(String) : [];
+  o.repsLabel = String(e.repsLabel || (o.defaultReps + (e.isTime ? ' sec' : ' reps')));
+  if(e.isTime) o.isTime = true; else delete o.isTime;
+  const st = parseFloat(e.step); if(st > 0) o.step = st; else delete o.step;
+  return o;
+}
+function sanitizeProgramConfig(c){
+  if(!c || typeof c !== 'object' || !c.programs || typeof c.programs !== 'object') return null;
+  const out = {v:1, programs:{}, order:[], weekly:{}};
+  Object.keys(c.programs).forEach(k => {
+    const p = c.programs[k]; if(!p || typeof p !== 'object') return;
+    const type = p.type === 'rest' ? 'rest' : 'gym';
+    out.programs[k] = {
+      label: String(p.label || p.fullName || 'Séance'),
+      fullName: String(p.fullName || p.label || 'Séance'),
+      type,
+      color: COLOR_MAP[p.color] ? p.color : (type === 'rest' ? 'grey' : 'green'),
+      exercises: type === 'rest' ? [] : (Array.isArray(p.exercises) ? p.exercises.filter(e => e && e.id && e.name).map(sanitizeEx) : [])
+    };
+  });
+  if(!out.programs.repos) out.programs.repos = cloneJSON(DEFAULT_PROGRAMS.repos);
+  out.order = (Array.isArray(c.order) ? c.order : Object.keys(out.programs)).filter(k => out.programs[k]);
+  Object.keys(out.programs).forEach(k => { if(!out.order.includes(k)) out.order.push(k); });
+  DAYS_ORDER.forEach(d => { const k = c.weekly && c.weekly[d]; out.weekly[d] = out.programs[k] ? k : 'repos'; });
+  return out;
+}
+function loadProgramConfig(){ return sanitizeProgramConfig(gs().program) || defaultProgramConfig(); }
+
+function applyProgram(cfg){
+  Object.keys(PROGRAM).forEach(k => delete PROGRAM[k]);
+  Object.keys(cfg.programs).forEach(k => { PROGRAM[k] = cfg.programs[k]; });
+  PROGRAM_PICKER_KEYS.length = 0;
+  cfg.order.forEach(k => { if(PROGRAM[k]) PROGRAM_PICKER_KEYS.push(k); });
+  Object.keys(WEEKLY_SUGGESTIONS).forEach(k => delete WEEKLY_SUGGESTIONS[k]);
+  DAYS_ORDER.forEach(d => { WEEKLY_SUGGESTIONS[d] = PROGRAM[cfg.weekly[d]] ? cfg.weekly[d] : 'repos'; });
+}
+
+/* Registre id -> nom : conserve le nom des exercices même retirés du programme (l'historique reste lisible) */
+function rememberExNames(){
+  const d = gs(); const names = d.exNames || {}; let changed = false;
+  Object.values(PROGRAM).forEach(p => p.exercises.forEach(e => { if(names[e.id] !== e.name){ names[e.id] = e.name; changed = true; } }));
+  if(changed){ d.exNames = names; ss(d); }
+}
+
+let _progCfg = null;
+function initProgram(){ _progCfg = loadProgramConfig(); applyProgram(_progCfg); rememberExNames(); }
+function saveProgramConfig(){
+  const d = gs(); d.program = _progCfg; ss(d);
+  applyProgram(_progCfg); rememberExNames(); triggerSave();
+}
+
+/* Répétitions : lecture / reconstruction du libellé (« 8-12 reps », « Échec », « 30–60 sec ») */
+function exRepFields(ex){
+  const lab = ex.repsLabel || '';
+  if(/[eé]chec/i.test(lab)) return {failure:true, min:ex.defaultReps||10, max:ex.defaultReps||10};
+  const m = lab.match(/(\d+)\s*(?:[–-]\s*(\d+))?/);
+  if(m){ const a = +m[1], b = m[2] ? +m[2] : a; return {failure:false, min:a, max:Math.max(a,b)}; }
+  return {failure:false, min:ex.defaultReps||10, max:ex.defaultReps||10};
+}
+function buildRepsLabel(ex, min, max){
+  const lab = ex.repsLabel || '';
+  const tail = /[eé]chec/i.test(lab) ? '' : lab.replace(/^[\s\d–-]*(reps|sec)?/i, '');
+  return (min === max ? ''+min : min+'-'+max) + (ex.isTime ? ' sec' : ' reps') + tail;
+}
+function fmtRest(s){
+  s = +s || 0; if(s < 60) return s + 's';
+  const m = Math.floor(s/60), r = s % 60;
+  return r ? m + 'm' + String(r).padStart(2,'0') : m + 'min';
+}
+const fmtKg = n => String(Math.round(n*100)/100).replace('.', ',');
+
+initProgram();
+
 
 function getSet(dateKey,exId,idx){
   const d=gs();
@@ -453,7 +540,7 @@ function refreshWarmup(){
 }
 
 function closeModal(){
-  ['warmupModal','readinessModal','resetModal'].forEach(id=>{
+  ['warmupModal','readinessModal','resetModal','edConfirmModal'].forEach(id=>{
     const m=document.getElementById(id);if(m)m.remove();
   });
 }
@@ -584,34 +671,129 @@ function debounce(key,fn,ms=600){
   _debounce[key]=setTimeout(fn,ms);
 }
 
-let _timerInterval=null,_timerSec=0;
-function startTimer(sec,exName){
-  _timerSec=sec;
-  clearInterval(_timerInterval);
-  const w=document.getElementById('timerWidget');
-  const d=document.getElementById('timerDisplay');
-  const n=document.getElementById('timerExName');
-  n.textContent=exName||'Repos';
-  w.classList.add('show');
-  function tick(){
-    const m=Math.floor(_timerSec/60),s=_timerSec%60;
-    d.textContent=m+':'+(s<10?'0':'')+s;
-    d.className='tmr-time'+(_timerSec<=10?' urgent':'');
-    w.classList.toggle('urgent',_timerSec<=10&&_timerSec>0);
-    if(_timerSec<=0){
-      clearInterval(_timerInterval);_timerInterval=null;
-      d.textContent='GO !';d.className='tmr-time';
-      setTimeout(()=>{if(!_timerInterval)w.classList.remove('show');},2500);
-    } else _timerSec--;
-  }
-  tick();
-  _timerInterval=setInterval(tick,1000);
-}
+/* ============================================================
+   MINUTEUR DE REPOS — basé sur l'heure réelle
+   La fin est un horodatage (Date.now), pas un compteur décrémenté : le temps restant reste exact même si
+   l'onglet est mis en veille ou ralenti. Alertes : bips sur les 3 dernières secondes, son + vibration à la fin.
+   Le verrouillage automatique de l'écran est empêché pendant le repos (Wake Lock) quand le navigateur le permet.
+   ============================================================ */
+const TIMER_KEY='ga_timer';
+let _timerInterval=null,_timerEnd=0,_timerName='Repos',_timerBeeped=-1,_wakeLock=null,_audioCtx=null;
 
-function addTime(s){_timerSec+=s;}
+function getPrefs(){return Object.assign({sound:true,vibrate:true},gs().prefs||{});}
+function savePref(k,v){const d=gs();d.prefs=Object.assign({sound:true,vibrate:true},d.prefs||{});d.prefs[k]=v;ss(d);}
+
+function _audio(){
+  try{
+    if(!_audioCtx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;_audioCtx=new AC();}
+    if(_audioCtx.state==='suspended')_audioCtx.resume();
+    return _audioCtx;
+  }catch(e){return null;}
+}
+function beep(freq,dur,vol){
+  if(!getPrefs().sound)return;
+  const c=_audio();if(!c)return;
+  try{
+    const t=c.currentTime,o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol||0.35,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+0.02);
+  }catch(e){}
+}
+function buzz(pattern){
+  if(!getPrefs().vibrate||!navigator.vibrate)return;
+  try{navigator.vibrate(pattern);}catch(e){}
+}
+async function keepAwake(on){
+  try{
+    if(on){
+      if('wakeLock' in navigator&&!_wakeLock){
+        _wakeLock=await navigator.wakeLock.request('screen');
+        _wakeLock.addEventListener('release',()=>{_wakeLock=null;});
+      }
+    }else if(_wakeLock){const w=_wakeLock;_wakeLock=null;await w.release();}
+  }catch(e){_wakeLock=null;}
+}
+function persistTimer(){try{localStorage.setItem(TIMER_KEY,JSON.stringify({end:_timerEnd,name:_timerName}));}catch(e){}}
+function clearPersistedTimer(){try{localStorage.removeItem(TIMER_KEY);}catch(e){}}
+function timerRemaining(){return Math.max(0,Math.ceil((_timerEnd-Date.now())/1000));}
+
+function startTimer(sec,exName){
+  _audio(); /* déverrouille le son pendant le geste de l'utilisateur */
+  _timerEnd=Date.now()+sec*1000;
+  _timerName=exName||'Repos';
+  _timerBeeped=-1;
+  persistTimer();
+  document.getElementById('timerExName').textContent=_timerName;
+  document.getElementById('timerWidget').classList.add('show');
+  clearInterval(_timerInterval);
+  _timerInterval=setInterval(timerTick,250);
+  keepAwake(true);
+  timerTick();
+}
+function timerTick(){
+  const w=document.getElementById('timerWidget'),d=document.getElementById('timerDisplay');
+  if(!w||!d)return;
+  const rem=timerRemaining();
+  if(rem<=0){timerFinish();return;}
+  const m=Math.floor(rem/60),sc=rem%60;
+  d.textContent=m+':'+(sc<10?'0':'')+sc;
+  d.className='tmr-time'+(rem<=10?' urgent':'');
+  w.classList.toggle('urgent',rem<=10);
+  if(rem<=3&&_timerBeeped!==rem){_timerBeeped=rem;beep(660,0.12,0.25);}
+}
+function timerFinish(){
+  const w=document.getElementById('timerWidget'),d=document.getElementById('timerDisplay');
+  clearInterval(_timerInterval);_timerInterval=null;
+  clearPersistedTimer();keepAwake(false);
+  if(d){d.textContent='GO !';d.className='tmr-time';}
+  if(w)w.classList.remove('urgent');
+  buzz([300,120,300,120,500]);
+  beep(880,0.45,0.45);setTimeout(()=>beep(1175,0.6,0.45),220);
+  setTimeout(()=>{if(!_timerInterval&&w)w.classList.remove('show');},2500);
+}
+function addTime(s){
+  if(!_timerInterval)return;
+  _timerEnd+=s*1000;_timerBeeped=-1;
+  persistTimer();timerTick();
+}
 function dismissTimer(){
   clearInterval(_timerInterval);_timerInterval=null;
+  clearPersistedTimer();keepAwake(false);
   document.getElementById('timerWidget').classList.remove('show');
+}
+/* Reprise après retour dans l'appli ou rechargement : le temps écoulé est rattrapé, l'alerte part si la fin est passée */
+function restoreTimer(){
+  try{
+    const t=JSON.parse(localStorage.getItem(TIMER_KEY)||'null');
+    if(!t||!t.end)return;
+    if(t.end<=Date.now()){clearPersistedTimer();return;}
+    _timerEnd=t.end;_timerName=t.name||'Repos';_timerBeeped=-1;
+    document.getElementById('timerExName').textContent=_timerName;
+    document.getElementById('timerWidget').classList.add('show');
+    clearInterval(_timerInterval);_timerInterval=setInterval(timerTick,250);
+    keepAwake(true);timerTick();
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)return;
+  if(_timerInterval){timerTick();keepAwake(true);}
+});
+window.addEventListener('pageshow',()=>{if(_timerInterval)timerTick();});
+
+function testTimerAlert(){
+  _audio();
+  buzz([200,100,200]);
+  beep(880,0.4,0.4);setTimeout(()=>beep(1175,0.5,0.4),200);
+}
+function togglePref(k,btn){
+  const v=!getPrefs()[k];
+  savePref(k,v);
+  btn.classList.toggle('on',v);btn.setAttribute('aria-checked',v);
+  if(v&&k==='sound')beep(880,0.2,0.35);
+  if(v&&k==='vibrate')buzz(80);
 }
 
 let _prTimer;
@@ -696,23 +878,97 @@ function getAllExercises(){
   Object.values(PROGRAM).forEach(day=>day.exercises.forEach(ex=>{
     if(!seen.has(ex.id)){seen.add(ex.id);list.push({id:ex.id,name:ex.name});}
   }));
+  /* exercices retirés du programme mais qui ont encore un historique */
+  const d=gs(),names=d.exNames||{},hist=new Set();
+  Object.values(d.workouts||{}).forEach(day=>Object.keys(day||{}).forEach(id=>hist.add(id)));
+  hist.forEach(id=>{ if(!seen.has(id)&&names[id]){seen.add(id);list.push({id,name:names[id]});} });
   return list.sort((a,b)=>a.name.localeCompare(b.name));
+}
+
+/* ============================================================
+   PROGRESSION : « dernière fois » + suggestion de surcharge
+   ============================================================ */
+function getLastSession(exId,dateKey){
+  const d=gs(); if(!d.workouts)return null;
+  const keys=Object.keys(d.workouts).filter(k=>k<dateKey&&d.workouts[k]&&d.workouts[k][exId]).sort().reverse();
+  for(const k of keys){
+    const sets=(d.workouts[k][exId]||[]).filter(x=>x&&x.done);
+    if(sets.length)return {date:k,sets};
+  }
+  return null;
+}
+function topSet(sets){
+  return sets.reduce((b,x)=>{
+    const w=parseFloat(x.weight)||0,r=parseFloat(x.reps)||0;
+    return (!b||w>b.w||(w===b.w&&r>b.r))?{w,r}:b;
+  },null);
+}
+function lastSessionHtml(ex,last,top){
+  const dstr=new Date(last.date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+  const unit=ex.isTime?' s':' reps';
+  const val=top.w>0?`${fmtKg(top.w)} kg × ${top.r}${ex.isTime?' s':''}`:`${top.r}${unit}`;
+  return `Dernière fois · ${dstr} : <b>${val}</b>${last.sets.length>1?` <span>· ${last.sets.length} séries</span>`:''}`;
+}
+/* up   : toutes les séries validées et la fourchette haute atteinte -> on monte la charge
+   hold : toutes les séries validées mais pas encore le haut de la fourchette -> on garde et on vise plus de reps */
+function getProgressionSuggestion(ex,last){
+  if(!last||ex.isTime||ex.type==='echauffement')return null;
+  const f=exRepFields(ex); if(f.failure)return null;
+  if(last.sets.length<ex.sets)return null;
+  const w=Math.max(...last.sets.map(x=>parseFloat(x.weight)||0));
+  if(w<=0)return null;
+  const step=ex.step>0?ex.step:2.5;
+  const next=Math.round((w+step)*100)/100;
+  const allTop=last.sets.every(x=>(parseFloat(x.reps)||0)>=f.max);
+  return allTop?{kind:'up',from:w,weight:next,step,target:f.min}:{kind:'hold',from:w,weight:w,next,target:f.max};
+}
+function sets0Applied(dateKey,ex,prog){
+  if(prog.kind!=='up')return false;
+  for(let i=0;i<ex.sets;i++){
+    const s=getSet(dateKey,ex.id,i);
+    if(!s.done&&parseFloat(s.weight)>=prog.weight)return true;
+  }
+  return false;
+}
+function progressionHtml(ex,prog,dateKey,applied){
+  if(prog.kind==='hold')
+    return `<div class="ex-prog hold" id="exp-${ex.id}"><span>Garde <b>${fmtKg(prog.from)} kg</b> et vise <b>${prog.target} reps</b> sur chaque série pour passer à ${fmtKg(prog.next)} kg.</span></div>`;
+  if(applied)
+    return `<div class="ex-prog up applied" id="exp-${ex.id}"><span>${ic('check')} Charge passée à <b>${fmtKg(prog.weight)} kg</b></span></div>`;
+  return `<div class="ex-prog up" id="exp-${ex.id}"><span><b>Prêt à monter !</b> Toutes les séries validées : essaie <b>${fmtKg(prog.weight)} kg</b> (+${fmtKg(prog.step)}).</span><button onclick="applyProgression('${dateKey}','${ex.id}',${prog.weight})">Appliquer</button></div>`;
+}
+function applyProgression(dateKey,exId,weight){
+  const {prog}=getEffectiveDayProgram(dateKey);
+  const ex=prog&&prog.exercises.find(e=>e.id===exId); if(!ex)return;
+  for(let i=0;i<ex.sets;i++){
+    if(getSet(dateKey,exId,i).done)continue;
+    saveSet(dateKey,exId,i,'weight',String(weight));
+    const el=document.getElementById('w-'+exId+'-'+i);
+    if(el){el.value=weight;onWeightInput(exId,i);}
+  }
+  const box=document.getElementById('exp-'+exId);
+  if(box){box.classList.add('applied');box.innerHTML=`<span>${ic('check')} Charge passée à <b>${fmtKg(weight)} kg</b></span>`;}
+  showToast('Nouvelle charge : '+fmtKg(weight)+' kg');
 }
 
 function renderExBlock(ex,dateKey){
   const prs=getPRs();
   const exPR=prs[ex.id];
   const note=getExNote(dateKey,ex.id);
+  const last=getLastSession(ex.id,dateKey);
+  const lastTop=last?topSet(last.sets):null;
+  const prog=getProgressionSuggestion(ex,last);
   let badge='';
   if(ex.superset) badge=`<span class="badge b-superset">Superset ${ex.superset}</span>`;
-  else if(ex.type==='compound') badge=`<span class="badge b-compound">Compound · 3min</span>`;
-  else badge=`<span class="badge b-isolation">Isolation · 1m30</span>`;
+  else if(ex.type==='compound') badge=`<span class="badge b-compound">Compound · ${fmtRest(ex.restSec)}</span>`;
+  else if(ex.type==='echauffement') badge=`<span class="badge b-rest">Échauffement · ${fmtRest(ex.restSec)}</span>`;
+  else badge=`<span class="badge b-isolation">Isolation · ${fmtRest(ex.restSec)}</span>`;
   if(ex.optional) badge+=`<span class="badge b-optional">Optionnel</span>`;
 
   let setRows='';
   for(let i=0;i<ex.sets;i++){
     const s=getSet(dateKey,ex.id,i);
-    const dispW = s.weight!=='' ? s.weight : (exPR ? exPR.weight : '');
+    const dispW = s.weight!=='' ? s.weight : ((lastTop&&lastTop.w>0) ? lastTop.w : (exPR ? exPR.weight : ''));
     const dispR = s.reps!==''   ? s.reps    : (ex.defaultReps||'');
     const isPR  = exPR && dispW && parseFloat(dispW)>=exPR.weight;
     const safeName=ex.name.replace(/'/g,"\\'");
@@ -742,6 +998,8 @@ function renderExBlock(ex,dateKey){
   const noteEscaped=(note.settings||'').replace(/"/g,'&quot;');
 
   let doneN=0;for(let i=0;i<ex.sets;i++)if(getSet(dateKey,ex.id,i).done)doneN++;
+  const lastHtml=last?`<div class="ex-last">${lastSessionHtml(ex,last,lastTop)}</div>`:'';
+  const progHtml=(prog&&doneN<ex.sets)?progressionHtml(ex,prog,dateKey,sets0Applied(dateKey,ex,prog)):'';
   return `
   <div class="ex-block">
     <div class="ex-header" onclick="toggleExCard('${ex.id}')">
@@ -752,6 +1010,7 @@ function renderExBlock(ex,dateKey){
     <div class="ex-body">
     <div class="ex-meta">${ex.sets} séries · ${ex.repsLabel}${exPR?` · PR : <b style="color:var(--orange)">${exPR.weight}kg × ${exPR.reps}reps</b>`:''}
     </div>
+    ${lastHtml}${progHtml}
     <div class="sets-wrap">${setRows}</div>
     <div class="ex-notes">
       <input class="ex-note-inp" type="text" placeholder="Réglages (ex : cran 4, prise large)"
@@ -969,7 +1228,7 @@ function toggleRunDone(dateKey,btnId){
 function renderWeek(){
   const todayName=getDayName();
   const el=document.getElementById('week-content');
-  let html=`<div class="chip">Programme de la semaine</div>`;
+  let html=`<div class="week-top"><div class="chip">Programme de la semaine</div><button class="prog-switch-btn ed-open" onclick="openProgramEditor()">${ic('edit')} Modifier</button></div>`;
   DAYS_ORDER.forEach(dayName=>{
     const sugKey=WEEKLY_SUGGESTIONS[dayName]||'repos';
     const prog=PROGRAM[sugKey];
@@ -1179,7 +1438,7 @@ function findExName(id){
     const ex=day.exercises.find(e=>e.id===id);
     if(ex)return ex.name;
   }
-  return id;
+  return (gs().exNames||{})[id]||id;
 }
 
 function renderCardio(){
@@ -1355,6 +1614,7 @@ function renderProfile(){
   const eq=getFunEquivalent(tonnage);
   const bw=getBodyWeight();
   const age=getAge();
+  const prefs=getPrefs();
 
   const sinceDate=new Date(since+'T12:00:00');
   const daysSince=Math.round((new Date()-sinceDate)/(1000*60*60*24));
@@ -1409,6 +1669,19 @@ function renderProfile(){
     </div>
   </div>
 
+  <div class="stitle">Minuteur de repos</div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="pref-row">
+      <div><div class="pref-name">Son de fin de repos</div><div class="pref-sub">Bips sur les 3 dernières secondes, puis sonnerie</div></div>
+      <button class="sw${prefs.sound?' on':''}" role="switch" aria-checked="${prefs.sound}" aria-label="Son de fin de repos" onclick="togglePref('sound',this)"><i></i></button>
+    </div>
+    <div class="pref-row">
+      <div><div class="pref-name">Vibration</div><div class="pref-sub">${('vibrate' in navigator)?'Vibre à la fin du repos':'Non prise en charge sur cet appareil (ex. Safari iPhone)'}</div></div>
+      <button class="sw${prefs.vibrate?' on':''}" role="switch" aria-checked="${prefs.vibrate}" aria-label="Vibration" onclick="togglePref('vibrate',this)"><i></i></button>
+    </div>
+    <button class="warmup-btn pref-test" onclick="testTimerAlert()">Tester l'alerte</button>
+  </div>
+
   <div class="stitle">Zone danger</div>
   <div class="card danger-card">
     <div style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.5">
@@ -1452,7 +1725,7 @@ function confirmReset(){
       <div class="modal-hdr"><div class="modal-title" style="color:var(--red)">Tout effacer ?</div></div>
       <div style="font-size:13px;color:var(--dim);margin:12px 0 20px;line-height:1.6">
         Tu es sur le point de supprimer <b style="color:var(--text)">toutes tes données</b> définitivement.<br><br>
-        Séances · Records · Tonnage · Streak · Check-ins · Tout.
+        Séances · Records · Tonnage · Streak · Check-ins.<br>Ton programme personnalisé et tes préférences sont conservés.
       </div>
       <div style="display:flex;gap:10px">
         <button class="run-done-btn" style="flex:1;background:none;border-color:var(--border);color:var(--muted)" onclick="closeModal()">Annuler</button>
@@ -1465,7 +1738,14 @@ function confirmReset(){
 
 function executeReset(){
   const prof=getProfile();
+  const old=gs();
   localStorage.removeItem('fitcore');
+  localStorage.removeItem(TIMER_KEY);
+  const keep=gs();
+  if(old.program)keep.program=old.program;
+  if(old.exNames)keep.exNames=old.exNames;
+  if(old.prefs)keep.prefs=old.prefs;
+  ss(keep);
   saveProfile({...prof,since:todayKey()});
   closeModal();
   showToast('Données réinitialisées');
@@ -1474,9 +1754,312 @@ function executeReset(){
 }
 
 function closeModal(){
-  ['warmupModal','readinessModal','resetModal'].forEach(id=>{
+  ['warmupModal','readinessModal','resetModal','edConfirmModal'].forEach(id=>{
     const m=document.getElementById(id);if(m)m.remove();
   });
+}
+
+/* ============================================================
+   ÉDITEUR DE PROGRAMME
+   Semaine type · création / suppression de séances · exercices (ajout, ordre, séries, reps, repos, muscles…)
+   Chaque modification est enregistrée immédiatement (saveProgramConfig).
+   ============================================================ */
+const ED_MUSCLES=[['pecs','Pecs'],['dos','Dos'],['epaules','Épaules'],['biceps','Biceps'],['triceps','Triceps'],['abdos','Abdos'],['jambes','Jambes']];
+const ED_COLORS=['red','blue','yellow','green'];
+const ED_COLOR_NAMES={red:'Rouge',blue:'Bleu',yellow:'Jaune',green:'Vert'};
+const ED_REST_OPTS=[30,45,60,75,90,120,150,180,240,300];
+const ED_TYPES=[['compound','Compound'],['isolation','Isolation'],['echauffement','Échauffement']];
+let _ed={view:'home',key:null,open:null,pendingDel:null};
+
+const escA=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const cleanName=s=>String(s||'').replace(/[<>"\\`]/g,'').replace(/\s+/g,' ').trim().slice(0,60);
+const normName=s=>cleanName(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+function knownExercises(){
+  const map={};
+  const names=gs().exNames||{};
+  Object.keys(names).forEach(id=>{map[id]=names[id];});
+  Object.values(PROGRAM).forEach(p=>p.exercises.forEach(e=>{map[e.id]=e.name;}));
+  return Object.keys(map).map(id=>({id,name:map[id]})).sort((a,b)=>a.name.localeCompare(b.name));
+}
+function exSummary(ex){return `${ex.sets} × ${escA(ex.repsLabel)} · repos ${fmtRest(ex.restSec)}`;}
+const edProg=()=>_progCfg.programs[_ed.key];
+const edSave=()=>saveProgramConfig();
+
+function openProgramEditor(){
+  closeProgramEditor(true);
+  _ed={view:'home',key:null,open:null,pendingDel:null};
+  const el=document.createElement('div');
+  el.className='ed-sheet';el.id='edSheet';
+  el.setAttribute('role','dialog');el.setAttribute('aria-label','Éditeur de programme');
+  el.innerHTML=`<div class="ed-hdr"><button class="drawer-close" id="edBack" onclick="edBack()" aria-label="Retour"></button><div class="drawer-title" id="edTitle"></div></div><div class="ed-body" id="edBody"></div>`;
+  document.body.appendChild(el);
+  document.body.style.overflow='hidden';
+  edRender();
+  requestAnimationFrame(()=>el.classList.add('open'));
+}
+function closeProgramEditor(silent){
+  const el=document.getElementById('edSheet');
+  if(!el)return;
+  el.remove();
+  document.body.style.overflow='';
+  if(!silent){renderWeek();renderToday();}
+}
+function edBack(){
+  if(_ed.view==='prog'){_ed.view='home';_ed.key=null;_ed.open=null;_ed.pendingDel=null;edRender();}
+  else closeProgramEditor();
+}
+function edRender(){
+  const body=document.getElementById('edBody');if(!body)return;
+  const title=document.getElementById('edTitle'),back=document.getElementById('edBack');
+  if(_ed.view==='prog'&&!edProg())_ed.view='home';
+  if(_ed.view==='prog'){
+    title.textContent=edProg().fullName;
+    back.innerHTML=ic('back');
+    body.innerHTML=edProgHtml();
+  }else{
+    title.textContent='Mes séances';
+    back.innerHTML=ic('close');
+    body.innerHTML=edHomeHtml();
+  }
+}
+
+/* ---------- Vue d'accueil : semaine type + liste des séances ---------- */
+function edHomeHtml(){
+  const cfg=_progCfg;
+  const opts=sel=>cfg.order.map(o=>`<option value="${o}"${o===sel?' selected':''}>${escA(cfg.programs[o].fullName)}</option>`).join('');
+  const days=DAYS_ORDER.map(d=>`<div class="ed-day"><span class="ed-day-n">${DAY_LABELS[d]}</span><select class="si ed-sel" aria-label="Séance du ${DAY_LABELS[d]}" onchange="edSetDay('${d}',this.value)">${opts(cfg.weekly[d])}</select></div>`).join('');
+  const list=cfg.order.map(k=>{
+    const p=cfg.programs[k],rest=p.type==='rest',n=p.exercises.length;
+    return `<div class="prog-pick-item ed-prog${rest?' ed-fixed':''}"${rest?'':` onclick="edOpenProg('${k}')"`}>
+      <span class="prog-pick-icon" style="--c:${progColor(k)}"></span>
+      <div class="prog-pick-info"><div class="prog-pick-name">${escA(p.fullName)}</div><div class="prog-pick-meta">${rest?'Jour de repos (fixe)':n+' exercice'+(n>1?'s':'')}</div></div>
+      ${rest?'':ic('chev')}</div>`;
+  }).join('');
+  return `<div class="ed-hint">Choisis la séance suggérée pour chaque jour. Tu pourras toujours en changer au quotidien depuis l'écran Séance.</div>
+    <div class="stitle">Semaine type</div>
+    <div class="card ed-days">${days}</div>
+    <div class="stitle">Séances</div>
+    <div class="ed-list">${list}</div>
+    <button class="btn-calc ed-add" onclick="edNewProg()">${ic('plus')} Nouvelle séance</button>
+    <button class="ed-reset" onclick="edConfirmReset()">${ic('undo')} Rétablir le programme d'origine</button>`;
+}
+function edSetDay(d,k){
+  if(!_progCfg.programs[k])return;
+  _progCfg.weekly[d]=k;edSave();
+}
+function edOpenProg(k){
+  if(!_progCfg.programs[k]||_progCfg.programs[k].type==='rest')return;
+  _ed.view='prog';_ed.key=k;_ed.open=null;_ed.pendingDel=null;
+  edRender();
+  const body=document.getElementById('edBody');if(body)body.scrollTop=0;
+}
+function edNewProg(){
+  const key='p_'+Date.now().toString(36);
+  _progCfg.programs[key]={label:'Nouvelle séance',fullName:'Nouvelle séance',type:'gym',color:'green',exercises:[]};
+  _progCfg.order.push(key);
+  edSave();
+  edOpenProg(key);
+  const inp=document.getElementById('edProgName');if(inp){inp.focus();inp.select();}
+}
+
+/* ---------- Vue séance : nom, couleur, exercices ---------- */
+function edProgHtml(){
+  const p=edProg();
+  const sw=ED_COLORS.map(c=>`<button class="ed-sw${p.color===c?' on':''}" style="--c:${COLOR_MAP[c]}" onclick="edSetColor('${c}')" aria-label="${ED_COLOR_NAMES[c]}" aria-pressed="${p.color===c}"></button>`).join('');
+  const n=p.exercises.length;
+  const exs=n?p.exercises.map((ex,i)=>edExHtml(ex,i,n)).join(''):`<div class="empty">Aucun exercice pour l'instant.<br>Ajoute le premier ci-dessous.</div>`;
+  const dl=knownExercises().map(e=>`<option value="${escA(e.name)}"></option>`).join('');
+  return `<div class="card ed-card">
+      <span class="set-lbl ed-lbl">NOM DE LA SÉANCE</span>
+      <input class="ex-note-inp" id="edProgName" type="text" maxlength="40" value="${escA(p.fullName)}" onchange="edRenameProg(this.value)" autocomplete="off">
+      <span class="set-lbl ed-lbl">COULEUR</span>
+      <div class="ed-sws">${sw}</div>
+    </div>
+    <div class="stitle">Exercices <span>${n}</span></div>
+    ${exs}
+    <button class="btn-calc ed-add" onclick="edAddEx()">${ic('plus')} Ajouter un exercice</button>
+    <button class="btn-danger ed-delprog" onclick="edConfirmDelProg()">Supprimer cette séance</button>
+    <datalist id="edExNames">${dl}</datalist>`;
+}
+function edRenameProg(v){
+  const p=edProg();const name=cleanName(v);
+  if(!name){const i=document.getElementById('edProgName');if(i)i.value=p.fullName;showToast('Le nom ne peut pas être vide');return;}
+  p.fullName=name;p.label=name;edSave();
+  const t=document.getElementById('edTitle');if(t)t.textContent=name;
+}
+function edSetColor(c){
+  edProg().color=c;edSave();
+  document.querySelectorAll('.ed-sw').forEach(b=>{const on=b.getAttribute('aria-label')===ED_COLOR_NAMES[c];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+}
+
+function edExHtml(ex,i,n){
+  const open=_ed.open===i,pd=_ed.pendingDel===i;
+  return `<div class="card ed-ex${open?' open':''}">
+    <div class="ed-ex-row">
+      <div class="ed-ex-info" onclick="edToggleEx(${i})" role="button" tabindex="0" aria-expanded="${open}">
+        <div class="ed-ex-name" id="ednm-${i}">${escA(ex.name)}</div>
+        <div class="ed-ex-sum" id="edsum-${i}">${exSummary(ex)}</div>
+      </div>
+      <div class="ed-ex-btns">
+        <button class="ed-ib" ${i===0?'disabled':''} onclick="edMoveEx(${i},-1)" aria-label="Monter">${ic('up')}</button>
+        <button class="ed-ib" ${i===n-1?'disabled':''} onclick="edMoveEx(${i},1)" aria-label="Descendre">${ic('down')}</button>
+        <button class="ed-ib${pd?' warn':''}" onclick="edDelEx(${i})" aria-label="Supprimer l'exercice">${pd?'Sûr ?':ic('trash')}</button>
+      </div>
+    </div>
+    ${open?edExForm(ex,i):''}
+  </div>`;
+}
+function edExForm(ex,i){
+  const f=exRepFields(ex);
+  const restOpts=(ED_REST_OPTS.includes(ex.restSec)?ED_REST_OPTS:ED_REST_OPTS.concat(ex.restSec).sort((a,b)=>a-b)).map(r=>`<option value="${r}"${r===ex.restSec?' selected':''}>${fmtRest(r)}</option>`).join('');
+  const types=ED_TYPES.map(([t,l])=>`<button class="ed-chip${ex.type===t?' on':''}" onclick="edType(${i},'${t}')">${l}</button>`).join('');
+  const muscles=ED_MUSCLES.map(([m,l])=>`<button class="ed-chip${ex.muscles.includes(m)?' on':''}" onclick="edMuscle(${i},'${m}')">${l}</button>`).join('');
+  return `<div class="ed-form">
+    <span class="set-lbl ed-lbl">NOM</span>
+    <input class="ex-note-inp" id="edname-${i}" list="edExNames" type="text" maxlength="60" value="${escA(ex.name)}" onchange="edName(${i},this.value)" autocomplete="off">
+    <div class="ed-grid">
+      <div class="input-col"><span class="set-lbl">SÉRIES</span><input class="si" type="number" inputmode="numeric" min="1" max="12" value="${ex.sets}" onchange="edNum(${i},this)"></div>
+      <div class="input-col"><span class="set-lbl">${ex.isTime?'SEC MIN':'REPS MIN'}</span><input class="si" id="edmin-${i}" type="number" inputmode="numeric" min="1" value="${f.min}" ${f.failure?'disabled':''} onchange="edReps(${i})"></div>
+      <div class="input-col"><span class="set-lbl">${ex.isTime?'SEC MAX':'REPS MAX'}</span><input class="si" id="edmax-${i}" type="number" inputmode="numeric" min="1" value="${f.max}" ${f.failure?'disabled':''} onchange="edReps(${i})"></div>
+    </div>
+    <div class="ed-chips">
+      <button class="ed-chip${f.failure?' on':''}" onclick="edToggle(${i},'failure')">À l'échec</button>
+      <button class="ed-chip${ex.isTime?' on':''}" onclick="edToggle(${i},'isTime')">Au temps (sec)</button>
+    </div>
+    <span class="set-lbl ed-lbl">TYPE</span>
+    <div class="ed-chips">${types}</div>
+    <div class="ed-grid2">
+      <div class="input-col"><span class="set-lbl">REPOS</span><select class="si" onchange="edRest(${i},this.value)">${restOpts}</select></div>
+      <div class="input-col"><span class="set-lbl">PROGRESSION (+KG)</span><input class="si" type="number" inputmode="decimal" step="0.25" min="0.25" placeholder="2,5" value="${ex.step>0?ex.step:''}" onchange="edStep(${i},this.value)"></div>
+    </div>
+    <span class="set-lbl ed-lbl">MUSCLES TRAVAILLÉS (RADAR)</span>
+    <div class="ed-chips">${muscles}</div>
+  </div>`;
+}
+function edToggleEx(i){_ed.open=_ed.open===i?null:i;_ed.pendingDel=null;edRender();}
+function edRefreshSum(i){
+  const ex=edProg().exercises[i];
+  const el=document.getElementById('edsum-'+i);if(el)el.innerHTML=exSummary(ex);
+}
+function edMoveEx(i,dir){
+  const arr=edProg().exercises,j=i+dir;
+  if(j<0||j>=arr.length)return;
+  [arr[i],arr[j]]=[arr[j],arr[i]];
+  if(_ed.open===i)_ed.open=j;else if(_ed.open===j)_ed.open=i;
+  _ed.pendingDel=null;
+  edSave();edRender();
+}
+function edDelEx(i){
+  if(_ed.pendingDel===i){
+    edProg().exercises.splice(i,1);
+    if(_ed.open===i)_ed.open=null;else if(_ed.open>i)_ed.open--;
+    _ed.pendingDel=null;
+    edSave();edRender();
+    showToast('Exercice retiré (historique conservé)');
+    return;
+  }
+  _ed.pendingDel=i;edRender();
+  setTimeout(()=>{if(_ed.pendingDel===i){_ed.pendingDel=null;edRender();}},3000);
+}
+function edAddEx(){
+  const p=edProg();
+  if(p.exercises.length>=30){showToast('30 exercices maximum par séance');return;}
+  p.exercises.push({id:'x_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:'Nouvel exercice',sets:3,repsLabel:'8-12 reps',defaultReps:10,type:'compound',muscles:[],restSec:90});
+  _ed.open=p.exercises.length-1;_ed.pendingDel=null;
+  edSave();edRender();
+  const inp=document.getElementById('edname-'+_ed.open);
+  if(inp){inp.scrollIntoView({block:'center'});inp.focus();inp.select();}
+}
+function edName(i,v){
+  const ex=edProg().exercises[i];const name=cleanName(v);
+  const inp=document.getElementById('edname-'+i);
+  if(!name){if(inp)inp.value=ex.name;showToast('Le nom ne peut pas être vide');return;}
+  ex.name=name;
+  /* Nom déjà connu (autre séance ou historique) : on reprend son identifiant pour garder records et historique */
+  if(/^x_/.test(ex.id)){
+    const match=knownExercises().find(k=>k.id!==ex.id&&normName(k.name)===normName(name));
+    if(match&&!edProg().exercises.some((e,j)=>j!==i&&e.id===match.id)){ex.id=match.id;ex.name=match.name;}
+  }
+  if(inp)inp.value=ex.name;
+  const nm=document.getElementById('ednm-'+i);if(nm)nm.textContent=ex.name;
+  edSave();
+}
+function edNum(i,input){
+  const ex=edProg().exercises[i];
+  ex.sets=Math.min(12,Math.max(1,parseInt(input.value)||ex.sets));
+  input.value=ex.sets;
+  edSave();edRefreshSum(i);
+}
+function edReps(i){
+  const ex=edProg().exercises[i];
+  const a=document.getElementById('edmin-'+i),b=document.getElementById('edmax-'+i);
+  const min=Math.max(1,parseInt(a.value)||1);
+  const max=Math.max(min,parseInt(b.value)||min);
+  a.value=min;b.value=max;
+  ex.repsLabel=buildRepsLabel(ex,min,max);
+  ex.defaultReps=Math.round((min+max)/2);
+  edSave();edRefreshSum(i);
+}
+function edToggle(i,what){
+  const ex=edProg().exercises[i];
+  if(what==='failure'){
+    if(exRepFields(ex).failure)ex.repsLabel=buildRepsLabel(ex,ex.defaultReps,ex.defaultReps);
+    else ex.repsLabel='Échec';
+  }else if(what==='isTime'){
+    const f=exRepFields(ex);
+    if(ex.isTime)delete ex.isTime;else ex.isTime=true;
+    if(!f.failure)ex.repsLabel=buildRepsLabel(ex,f.min,f.max);
+  }
+  edSave();edRender();
+}
+function edType(i,t){edProg().exercises[i].type=t;edSave();edRender();}
+function edRest(i,v){edProg().exercises[i].restSec=parseInt(v)||90;edSave();edRefreshSum(i);}
+function edStep(i,v){
+  const ex=edProg().exercises[i],n=parseFloat(String(v).replace(',','.'));
+  if(n>0)ex.step=Math.min(50,n);else delete ex.step;
+  edSave();
+}
+function edMuscle(i,m){
+  const ex=edProg().exercises[i];
+  ex.muscles=ex.muscles.includes(m)?ex.muscles.filter(x=>x!==m):ex.muscles.concat(m);
+  edSave();edRender();
+}
+
+/* ---------- Confirmations ---------- */
+function edConfirm(title,msg,okLabel,fn){
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal-overlay" id="edConfirmModal" onclick="if(event.target.id==='edConfirmModal')closeModal()">
+    <div class="modal-box" style="max-width:360px">
+      <div class="modal-hdr"><div class="modal-title" style="color:var(--red)">${title}</div></div>
+      <div style="font-size:13px;color:var(--dim);margin:12px 0 20px;line-height:1.6">${msg}</div>
+      <div style="display:flex;gap:10px">
+        <button class="run-done-btn" style="flex:1;margin-top:0;background:none;border:1.5px solid var(--border);color:var(--muted)" onclick="closeModal()">Annuler</button>
+        <button class="btn-danger" style="flex:1" onclick="${fn}()">${okLabel}</button>
+      </div>
+    </div></div>`);
+}
+function edConfirmDelProg(){
+  edConfirm('Supprimer la séance ?',`« ${escA(edProg().fullName)} » sera retirée de ton programme. Ton historique est conservé.`,'Supprimer','edDoDelProg');
+}
+function edDoDelProg(){
+  const k=_ed.key;
+  delete _progCfg.programs[k];
+  _progCfg.order=_progCfg.order.filter(x=>x!==k);
+  DAYS_ORDER.forEach(d=>{if(_progCfg.weekly[d]===k)_progCfg.weekly[d]='repos';});
+  const d=gs();
+  if(d.dayProgram){Object.keys(d.dayProgram).forEach(dk=>{if(d.dayProgram[dk]===k)delete d.dayProgram[dk];});ss(d);}
+  edSave();closeModal();
+  _ed.view='home';_ed.key=null;_ed.open=null;
+  edRender();showToast('Séance supprimée');
+}
+function edConfirmReset(){
+  edConfirm('Rétablir le programme ?','Tes séances et ta semaine type reviennent au programme d\'origine. Ton historique (charges, records, stats) n\'est pas touché.','Rétablir','edDoReset');
+}
+function edDoReset(){
+  _progCfg=defaultProgramConfig();
+  edSave();closeModal();
+  _ed.view='home';_ed.key=null;_ed.open=null;
+  edRender();showToast('Programme d\'origine rétabli');
 }
 
 const TABS=['today','week','stats','cardio','profile'];
@@ -1502,6 +2085,7 @@ function init(){
   renderWeek();
   updateStreak();
   updateReg();
+  restoreTimer();
 
   document.addEventListener('pointerdown',function(e){
     const pop=document.getElementById('prPopup');
