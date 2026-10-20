@@ -7,6 +7,7 @@ const ICONS={
   star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8L3.5 9.7l5.9-.8z"/>',
   dumbbell:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
   back:'<path d="M15 6l-6 6 6 6"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   up:'<path d="M6 14l6-6 6 6"/>',
   down:'<path d="M6 10l6 6 6-6"/>',
@@ -242,7 +243,7 @@ function saveSet(dateKey,exId,idx,field,val){
   if(!d.workouts[dateKey][exId][idx])d.workouts[dateKey][exId][idx]={done:false,weight:'',reps:''};
   d.workouts[dateKey][exId][idx][field]=val;
   ss(d); triggerSave();
-  if(field==='done'&&val)markDayActive(dateKey);
+  if(field==='done'&&val){markDayActive(dateKey);touchSession(dateKey);}
 }
 
 function getRunLog(dateKey){
@@ -280,7 +281,18 @@ function getAge(){const d=gs();return d.age||25;}
 function saveAge(a){const d=gs();d.age=a;ss(d);}
 
 function getBodyWeight(){const d=gs();return d.bodyWeight||75;}
-function saveBodyWeight(w){const d=gs();d.bodyWeight=parseFloat(w)||75;ss(d);}
+function saveBodyWeight(w,dateKey){
+  const kg=Math.round(parseFloat(String(w).replace(',','.'))*10)/10;
+  if(!(kg>=20&&kg<=300))return false;
+  const d=gs(),k=dateKey||todayKey();
+  const log=(d.weightLog||[]).filter(e=>e&&e.date!==k);
+  log.push({date:k,kg});
+  log.sort((a,b)=>a.date<b.date?-1:1);
+  d.weightLog=log;
+  d.bodyWeight=log[log.length-1].kg;
+  ss(d);triggerSave();
+  return true;
+}
 
 function getExNote(dateKey,exId){
   const d=gs();
@@ -486,7 +498,8 @@ function renderHeatmap(){
         else lvl=1;
       }
       const isToday=key===todayStr;
-      html+=`<div class="hm-cell lvl${lvl}${isFuture?' future':''}${isToday?' hm-today':''}" title="${key}${t?' · '+Math.round(t)+'kg':''}"></div>`;
+      const clickable=!isFuture&&(t>0||isActive);
+      html+=`<div class="hm-cell lvl${lvl}${isFuture?' future':''}${isToday?' hm-today':''}${clickable?' hm-click':''}" title="${key}${t?' · '+Math.round(t)+'kg':''}"${clickable?` onclick="openSessionDetail('${key}')" role="button"`:''}></div>`;
     }
     html+='</div>';
   }
@@ -540,7 +553,7 @@ function refreshWarmup(){
 }
 
 function closeModal(){
-  ['warmupModal','readinessModal','resetModal','edConfirmModal'].forEach(id=>{
+  ['warmupModal','readinessModal','resetModal','edConfirmModal','summaryModal'].forEach(id=>{
     const m=document.getElementById(id);if(m)m.remove();
   });
 }
@@ -805,6 +818,7 @@ function checkAndShowPR(exId,exName,weight,reps){
   const isNew=!old||(w>old.weight)||(w===old.weight&&r>old.reps);
   if(isNew){
     savePR(exId,weight,reps,todayKey());
+    recordSessionPR(todayKey(),exId,exName,w,r);
     clearTimeout(_prTimer);
     document.getElementById('prPopName').textContent=exName;
     document.getElementById('prPopVal').textContent=w+' kg'+(r?' × '+r+' reps':'');
@@ -1098,6 +1112,14 @@ function toggleSet(dateKey,exId,idx,exName,restSec){
   updateDayProgressBar(dateKey);
   updateTonnageCard();
   refreshExCards(dateKey,true);
+  const pr=getDayProgress(dateKey);
+  const fb=document.getElementById('finishBtn');
+  if(fb)fb.style.display=pr.done>0?'flex':'none';
+  if(newDone&&pr.total>0&&pr.pct===100&&!getSessionMeta(dateKey).summaryShown){
+    updateSessionMeta(dateKey,m=>{m.summaryShown=true;});
+    dismissTimer();buzz([120,60,120]);
+    setTimeout(()=>{const pp=document.getElementById('prPopup');if(pp)pp.classList.remove('show');showSummary(dateKey);},900);
+  }
 }
 
 function onWeightChange(dateKey,exId,idx,exName,val){
@@ -1188,6 +1210,7 @@ function renderToday(){
       </div>
     </div>
   </div>`;
+  html+=`<button class="finish-btn" id="finishBtn" onclick="showSummary('${dateKey}')" style="display:${p.done>0?'flex':'none'}">${ic('check')} Résumé de la séance</button>`;
   el.innerHTML=html;
   refreshExCards(dateKey,false);
   setTimeout(()=>showReadinessPopup(),900);
@@ -1304,6 +1327,11 @@ function renderStats(){
     <div class="stat-card k-yellow"><div class="stat-v">${computeStreak()}</div><div class="stat-l">Jours de streak</div></div>
     <div class="stat-card k-green"><div class="stat-v">${computeReg()}%</div><div class="stat-l">Régularité 7j</div></div>
   </div>
+  <button class="hist-open" onclick="openHistory()">
+    <div class="hist-open-ic">${ic('clock')}</div>
+    <div class="hist-open-tx"><b>Historique des séances</b><span>${getSessionDates().length} séance${getSessionDates().length>1?'s':''} enregistrée${getSessionDates().length>1?'s':''} · relire et dupliquer</span></div>
+    ${ic('chev')}
+  </button>
   <div class="card" style="margin-bottom:12px">
     <div class="stitle">Calendrier d'activité</div>
     ${renderHeatmap()}
@@ -1327,6 +1355,7 @@ function renderStats(){
     <div class="stitle">Repartition Musculaire <span style="font-size:10px;color:var(--dim)">(7 derniers jours)</span></div>
     <canvas id="radarChart" height="250"></canvas>
   </div>
+  <div class="card" id="weightCard" style="margin-bottom:12px">${weightCardHtml()}</div>
   <div class="card" style="margin-bottom:12px">
     <div class="stitle">Records personnels</div>
     <div class="bw-row">
@@ -1342,7 +1371,7 @@ function renderStats(){
 
 function saveBWAndRefresh(){
   const inp=document.getElementById('bwInp');
-  if(inp)saveBodyWeight(inp.value);
+  if(inp&&!saveBodyWeight(inp.value))showToast('Poids invalide (20 à 300 kg)');
   renderStats();
 }
 
@@ -1682,6 +1711,17 @@ function renderProfile(){
     <button class="warmup-btn pref-test" onclick="testTimerAlert()">Tester l'alerte</button>
   </div>
 
+  <div class="stitle">Sauvegarde des données</div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="pref-sub" style="margin:0 0 14px;font-size:13px;line-height:1.5">Tes données sont stockées uniquement sur cet appareil. Exporte-les pour changer de téléphone ou te protéger d'un nettoyage du navigateur.</div>
+    <div class="bk-btns">
+      <button class="btn-calc bk-save" onclick="exportData()">${ic('down')} Sauvegarder</button>
+      <button class="btn-calc bk-restore" onclick="document.getElementById('importFile').click()">${ic('up')} Restaurer</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importFileChosen(this)">
+    <div class="pref-sub bk-last" id="backupLast">${backupLabel()}</div>
+  </div>
+
   <div class="stitle">Zone danger</div>
   <div class="card danger-card">
     <div style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.5">
@@ -1711,7 +1751,7 @@ function selectAvatar(a){
 
 function saveProfBW(){
   const inp=document.getElementById('profBwInp');
-  if(inp){saveBodyWeight(inp.value);showToast('Poids de corps sauvegardé');}
+  if(inp){if(saveBodyWeight(inp.value))showToast('Poids de corps sauvegardé');else showToast('Poids invalide (20 à 300 kg)');}
 }
 
 function saveProfAge(){
@@ -1754,7 +1794,7 @@ function executeReset(){
 }
 
 function closeModal(){
-  ['warmupModal','readinessModal','resetModal','edConfirmModal'].forEach(id=>{
+  ['warmupModal','readinessModal','resetModal','edConfirmModal','summaryModal'].forEach(id=>{
     const m=document.getElementById(id);if(m)m.remove();
   });
 }
@@ -2062,6 +2102,401 @@ function edDoReset(){
   edRender();showToast('Programme d\'origine rétabli');
 }
 
+/* ============================================================
+   SESSIONS : méta (durée, séance, records), stats, historique, résumé, duplication
+   ============================================================ */
+const SESSION_GAP=45*60*1000;
+const fmtTonnage=kg=>kg>=1000?(Math.round(kg/100)/10).toLocaleString('fr-FR')+' t':Math.round(kg).toLocaleString('fr-FR')+' kg';
+
+function getSessionMeta(k){const d=gs();return (d.sessionMeta&&d.sessionMeta[k])||{};}
+function updateSessionMeta(k,fn){
+  const d=gs();if(!d.sessionMeta)d.sessionMeta={};
+  const m=d.sessionMeta[k]||{};fn(m);d.sessionMeta[k]=m;ss(d);
+}
+/* Appelé à chaque série validée : la durée cumule les écarts entre séries (pauses > 45 min ignorées) */
+function touchSession(k){
+  const now=Date.now();
+  updateSessionMeta(k,m=>{
+    if(!m.start){m.start=now;m.ms=0;}
+    else if(m.last&&now-m.last<=SESSION_GAP)m.ms=(m.ms||0)+(now-m.last);
+    m.last=now;
+    if(!m.prog){
+      const e=getEffectiveDayProgram(k);
+      if(e.prog&&e.prog.type!=='rest')m.prog={key:e.key,name:e.prog.fullName};
+    }
+  });
+}
+function recordSessionPR(k,id,name,w,r){
+  updateSessionMeta(k,m=>{m.prs=(m.prs||[]).filter(x=>x.id!==id);m.prs.push({id,name,w,r});});
+}
+function findExDef(id){
+  for(const p of Object.values(PROGRAM)){const e=p.exercises.find(x=>x.id===id);if(e)return e;}
+  return null;
+}
+/* Séance d'un jour : celle enregistrée à l'époque, sinon celle qui recoupe le mieux les exercices faits */
+function inferProgram(k,ids){
+  const meta=getSessionMeta(k);
+  if(meta.prog)return{key:PROGRAM[meta.prog.key]?meta.prog.key:null,name:meta.prog.name||'Séance'};
+  const eff=getEffectiveDayProgram(k).key;
+  let best=null,bestN=0;
+  Object.keys(PROGRAM).forEach(key=>{
+    const p=PROGRAM[key];if(p.type==='rest')return;
+    const n=p.exercises.filter(e=>ids.includes(e.id)).length;
+    if(n>bestN||(n===bestN&&n>0&&key===eff)){best=key;bestN=n;}
+  });
+  return best?{key:best,name:PROGRAM[best].fullName}:null;
+}
+function sessionStats(k){
+  const d=gs(),day=(d.workouts&&d.workouts[k])||{},notes=(d.exNotes&&d.exNotes[k])||{},meta=(d.sessionMeta&&d.sessionMeta[k])||{};
+  const exs=[],rpes=[];let tonnage=0,sets=0;
+  Object.keys(day).forEach(id=>{
+    const done=(day[id]||[]).filter(x=>x&&x.done);
+    if(!done.length)return;
+    const def=findExDef(id),n=notes[id]||{};
+    sets+=done.length;
+    if(!(def&&def.isTime))done.forEach(x=>{tonnage+=(parseFloat(x.weight)||0)*(parseFloat(x.reps)||10);});
+    const r=parseFloat(n.rpe);if(r>0)rpes.push(r);
+    exs.push({id,name:findExName(id),def,sets:done,note:n.settings||'',rpe:n.rpe||''});
+  });
+  const prog=exs.length?inferProgram(k,exs.map(e=>e.id)):null;
+  if(prog&&prog.key){
+    const order=PROGRAM[prog.key].exercises.map(e=>e.id);
+    exs.sort((a,b)=>{const ia=order.indexOf(a.id),ib=order.indexOf(b.id);return (ia<0?99:ia)-(ib<0?99:ib);});
+  }
+  const rl=d.runLogs&&d.runLogs[k]&&d.runLogs[k].done?d.runLogs[k]:null;
+  return{date:k,exs,prog,run:rl,sets,tonnage:Math.round(tonnage),
+    rpe:rpes.length?Math.round(rpes.reduce((a,b)=>a+b,0)/rpes.length*10)/10:null,
+    minutes:meta.ms>0?Math.max(1,Math.round(meta.ms/60000)):null,start:meta.start||null,prs:meta.prs||[]};
+}
+function getSessionDates(){
+  const d=gs(),set=new Set();
+  Object.keys(d.workouts||{}).forEach(k=>{if(Object.values(d.workouts[k]||{}).some(a=>(a||[]).some(x=>x&&x.done)))set.add(k);});
+  Object.keys(d.runLogs||{}).forEach(k=>{if(d.runLogs[k]&&d.runLogs[k].done)set.add(k);});
+  return Array.from(set).sort().reverse();
+}
+const stColor=st=>st.prog&&st.prog.key?progColor(st.prog.key):(st.exs.length?'#3A3E48':'var(--c-blue)');
+const stName=st=>st.prog?st.prog.name:(st.exs.length?'Séance':'Course');
+const fmtDateLong=k=>new Date(k+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const fmtDateShort=k=>new Date(k+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+const runLine=r=>[(r.distance?r.distance+' km':''),(r.duration?r.duration+' min':''),(r.rpe?'RPE '+r.rpe:'')].filter(Boolean).join(' · ');
+
+/* ---------- Écran Historique ---------- */
+let _hist={view:'list',key:null,direct:false};
+function openHistory(){closeHistory(true);_hist={view:'list',key:null,direct:false};mountHistory();}
+function openSessionDetail(k){
+  if(!getSessionDates().includes(k)){showToast('Aucune séance enregistrée ce jour');return;}
+  closeHistory(true);_hist={view:'detail',key:k,direct:true};mountHistory();
+}
+function mountHistory(){
+  const el=document.createElement('div');
+  el.className='ed-sheet';el.id='histSheet';
+  el.setAttribute('role','dialog');el.setAttribute('aria-label','Historique des séances');
+  el.innerHTML=`<div class="ed-hdr"><button class="drawer-close" id="histBack" onclick="histBack()" aria-label="Retour"></button><div class="drawer-title" id="histTitle"></div></div><div class="ed-body" id="histBody"></div>`;
+  document.body.appendChild(el);
+  document.body.style.overflow='hidden';
+  histRender();
+  requestAnimationFrame(()=>el.classList.add('open'));
+}
+function closeHistory(silent){
+  const el=document.getElementById('histSheet');if(!el)return;
+  el.remove();document.body.style.overflow='';
+  if(!silent&&document.getElementById('tab-stats').classList.contains('active'))renderStats();
+}
+function histBack(){
+  if(_hist.view==='detail'&&!_hist.direct){_hist.view='list';_hist.key=null;histRender();}
+  else closeHistory();
+}
+function histOpen(k){_hist.view='detail';_hist.key=k;_hist.direct=false;histRender();}
+function histRender(){
+  const body=document.getElementById('histBody'),title=document.getElementById('histTitle'),back=document.getElementById('histBack');
+  if(!body)return;
+  if(_hist.view==='detail'){
+    title.textContent=fmtDateShort(_hist.key);back.innerHTML=ic('back');body.innerHTML=histDetailHtml(_hist.key);
+  }else{
+    title.textContent='Historique';back.innerHTML=ic('close');body.innerHTML=histListHtml();
+  }
+  body.scrollTop=0;
+}
+function histListHtml(){
+  const dates=getSessionDates();
+  if(!dates.length)return `<div class="empty">Aucune séance enregistrée.<br>Valide une série pour la retrouver ici.</div>`;
+  let html='',cur='';
+  dates.forEach(k=>{
+    const mo=k.slice(0,7);
+    if(mo!==cur){
+      cur=mo;
+      const n=dates.filter(x=>x.startsWith(mo)).length;
+      html+=`<div class="stitle">${new Date(mo+'-01T12:00:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'})} <span>${n}</span></div>`;
+    }
+    const st=sessionStats(k),dt=new Date(k+'T12:00:00');
+    const parts=[];
+    if(st.exs.length){
+      parts.push(st.exs.length+' exo'+(st.exs.length>1?'s':''),st.sets+' séries');
+      if(st.tonnage>0)parts.push(fmtTonnage(st.tonnage));
+      if(st.minutes)parts.push(st.minutes+' min');
+      if(st.prs.length)parts.push(st.prs.length+' PR');
+    }
+    if(st.run)parts.push((st.exs.length?'+ course ':'')+runLine(st.run));
+    html+=`<div class="hist-row" style="--c:${stColor(st)}" onclick="histOpen('${k}')" role="button" tabindex="0">
+      <div class="hist-date"><b>${dt.getDate()}</b><span>${dt.toLocaleDateString('fr-FR',{weekday:'short'})}</span></div>
+      <div class="hist-info"><div class="hist-name">${escA(stName(st))}</div><div class="hist-meta">${escA(parts.join(' · '))}</div></div>
+      ${ic('chev')}</div>`;
+  });
+  return html;
+}
+function histDetailHtml(k){
+  const st=sessionStats(k);
+  const time=st.start?new Date(st.start).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+  let html='';
+  if(st.exs.length){
+    html+=`<div class="card hist-hero" style="--c:${stColor(st)}">
+      <div class="hist-hero-name">${escA(stName(st))}</div>
+      <div class="hist-hero-date">${fmtDateLong(k)}${time?' · '+time:''}</div>
+      ${sumGridHtml(st)}</div>`;
+    if(st.prs.length)html+=`<div class="card hist-prs"><div class="set-lbl ed-lbl">RECORDS BATTUS</div>${st.prs.map(p=>`<div class="hist-pr"><span class="badge b-compound">PR</span><b>${escA(p.name)}</b><span>${fmtKg(p.w)} kg${p.r?' × '+p.r:''}</span></div>`).join('')}</div>`;
+    html+=`<div class="stitle">Exercices <span>${st.exs.length}</span></div>`;
+    st.exs.forEach(ex=>{
+      const chips=ex.sets.map((x,i)=>{
+        const w=parseFloat(x.weight)||0,r=x.reps||'—';
+        const txt=w>0?`${fmtKg(w)} kg × ${r}${ex.def&&ex.def.isTime?' s':''}`:`${r}${ex.def&&ex.def.isTime?' s':' reps'}`;
+        return `<span class="hist-set"><i>${i+1}</i>${txt}</span>`;
+      }).join('');
+      html+=`<div class="card hist-ex"><div class="hist-ex-name">${escA(ex.name)}</div><div class="hist-sets">${chips}</div>
+        ${ex.note?`<div class="hist-note">${escA(ex.note)}</div>`:''}${ex.rpe?`<span class="hist-rpe">RPE ${escA(ex.rpe)}/10</span>`:''}</div>`;
+    });
+  }else{
+    html+=`<div class="card hist-hero" style="--c:var(--c-blue)"><div class="hist-hero-name">Course</div><div class="hist-hero-date">${fmtDateLong(k)}</div></div>`;
+  }
+  if(st.run)html+=`<div class="stitle">Course</div><div class="card hist-ex"><div class="hist-ex-name">${escA(runLine(st.run)||'Séance faite')}</div></div>`;
+  if(st.exs.length&&k!==todayKey()){
+    html+=`<button class="btn-calc ed-add" onclick="duplicateSession('${k}')">${ic('plus')} Dupliquer cette séance</button>
+      <div class="ed-hint" style="text-align:center;margin-top:8px">Préremplit la séance d'aujourd'hui avec les mêmes charges et répétitions.</div>`;
+  }
+  return html;
+}
+function sumGridHtml(st){
+  const cells=[['Tonnage',st.tonnage>0?fmtTonnage(st.tonnage):'—'],['Séries',st.sets||'—'],['Durée',st.minutes?st.minutes+' min':'—'],['RPE moyen',st.rpe!=null?st.rpe+'/10':'—']];
+  return `<div class="sum-grid">${cells.map(([l,v])=>`<div class="sum-cell"><div class="sum-v">${v}</div><div class="sum-l">${l}</div></div>`).join('')}</div>`;
+}
+
+/* ---------- Dupliquer une séance passée dans « aujourd'hui » ---------- */
+function duplicateSession(k){
+  const t=todayKey();if(k===t)return;
+  const d=gs();
+  if(Object.values((d.workouts&&d.workouts[t])||{}).some(a=>(a||[]).some(x=>x&&x.done))){showToast("Tu as déjà validé des séries aujourd'hui");return;}
+  const st=sessionStats(k);
+  const key=st.prog&&st.prog.key&&PROGRAM[st.prog.key]?st.prog.key:null;
+  if(!key||!st.exs.length){showToast('Séance introuvable dans ton programme actuel');return;}
+  const d2=gs();
+  if(d2.workouts)delete d2.workouts[t];
+  if(d2.exNotes)delete d2.exNotes[t];
+  ss(d2);
+  saveDayProgramOverride(t,key);
+  let copied=0;
+  PROGRAM[key].exercises.forEach(ex=>{
+    const src=st.exs.find(e=>e.id===ex.id);if(!src)return;
+    src.sets.slice(0,ex.sets).forEach((x,i)=>{
+      saveSet(t,ex.id,i,'weight',String(x.weight==null?'':x.weight));
+      saveSet(t,ex.id,i,'reps',String(x.reps==null?'':x.reps));
+    });
+    if(src.note)saveExNote(t,ex.id,'settings',src.note);
+    copied++;
+  });
+  closeHistory(true);
+  renderToday();switchTab('today');
+  showToast(`Séance dupliquée · ${copied} exercice${copied>1?'s':''} prérempli${copied>1?'s':''}`);
+}
+
+/* ---------- Résumé de séance ---------- */
+function previousSimilar(k,st){
+  if(!st.prog)return null;
+  for(const x of getSessionDates()){
+    if(x>=k)continue;
+    const o=sessionStats(x);
+    if(o.prog&&o.prog.name===st.prog.name&&o.tonnage>0)return o;
+  }
+  return null;
+}
+function showSummary(k){
+  closeModal();
+  const st=sessionStats(k);
+  if(!st.exs.length&&!st.run){showToast('Valide au moins une série pour voir le résumé');return;}
+  updateSessionMeta(k,m=>{m.summaryShown=true;});
+  const eq=getFunEquivalent(st.tonnage);
+  const prev=previousSimilar(k,st);
+  let delta='';
+  if(prev&&st.tonnage>0){
+    const pct=Math.round((st.tonnage-prev.tonnage)/prev.tonnage*100);
+    delta=`<div class="sum-delta ${pct>0?'up':pct<0?'down':''}">${pct>0?'+':''}${pct} % de tonnage vs la séance du ${fmtDateShort(prev.date)}</div>`;
+  }
+  const prs=st.prs.length?`<div class="sum-prs"><div class="set-lbl ed-lbl">RECORDS BATTUS</div>${st.prs.map(p=>`<div class="hist-pr"><span class="badge b-compound">PR</span><b>${escA(p.name)}</b><span>${fmtKg(p.w)} kg${p.r?' × '+p.r:''}</span></div>`).join('')}</div>`:'';
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal-overlay" id="summaryModal" onclick="if(event.target.id==='summaryModal')closeModal()">
+    <div class="modal-box" style="--cm:${stColor(st)};border-top-color:${stColor(st)}">
+      <div class="modal-hdr"><div class="modal-title">Résumé de la séance</div></div>
+      <div class="sum-sub">${escA(stName(st))} · ${fmtDateShort(k)}</div>
+      ${st.exs.length?sumGridHtml(st):''}
+      ${eq&&st.tonnage>0?`<div class="sum-eq">soit ${eq.count} ${eq.name}</div>`:''}
+      ${delta}${prs}
+      ${st.run?`<div class="sum-sub" style="margin-top:12px">Course : ${escA(runLine(st.run))}</div>`:''}
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="run-done-btn" style="flex:1;margin-top:0;background:none;border:1.5px solid var(--border);color:var(--muted)" onclick="closeModal();openSessionDetail('${k}')">Voir le détail</button>
+        <button class="run-done-btn done" style="flex:1;margin-top:0" onclick="closeModal()">Terminer</button>
+      </div>
+    </div></div>`);
+}
+
+/* ============================================================
+   POIDS DE CORPS : journal et courbe (SVG, sans dépendance)
+   ============================================================ */
+let _wRange='90',_wDel=null;
+function getWeightLog(){return (gs().weightLog||[]).filter(e=>e&&e.date&&e.kg>0).sort((a,b)=>a.date<b.date?-1:1);}
+function migrateWeightLog(){
+  const d=gs();
+  if(!d.weightLog&&d.bodyWeight>0){d.weightLog=[{date:todayKey(),kg:d.bodyWeight}];ss(d);}
+}
+function weightPoints(){
+  const all=getWeightLog();
+  if(_wRange==='all')return all;
+  const lim=new Date();lim.setDate(lim.getDate()-parseInt(_wRange));
+  const lk=dateToKey(lim);
+  return all.filter(e=>e.date>=lk);
+}
+const fmtW=n=>(Math.round(n*10)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1});
+function weightSvg(pts){
+  if(pts.length<2)return `<div class="empty" style="padding:18px 0 8px">${pts.length?'Ajoute une deuxième pesée<br>pour voir la courbe.':'Aucune pesée sur cette période.'}</div>`;
+  const W=320,H=170,L=38,R=12,T=14,B=26;
+  const t=pts.map(p=>new Date(p.date+'T12:00:00').getTime()),v=pts.map(p=>p.kg);
+  let lo=Math.min(...v),hi=Math.max(...v);
+  const pad=Math.max(0.5,(hi-lo)*0.15);
+  lo=Math.floor((lo-pad)*2)/2;hi=Math.ceil((hi+pad)*2)/2;if(hi-lo<1)hi=lo+1;
+  const t0=t[0],t1=t[t.length-1];
+  const X=x=>L+(t1===t0?0.5:(x-t0)/(t1-t0))*(W-L-R),Y=y=>T+(1-(y-lo)/(hi-lo))*(H-T-B);
+  const line=pts.map((p,i)=>(i?'L':'M')+X(t[i]).toFixed(1)+' '+Y(v[i]).toFixed(1)).join(' ');
+  const area=line+` L${X(t1).toFixed(1)} ${H-B} L${X(t0).toFixed(1)} ${H-B} Z`;
+  const grid=[lo,(lo+hi)/2,hi].map(g=>`<line class="w-grid" x1="${L}" x2="${W-R}" y1="${Y(g).toFixed(1)}" y2="${Y(g).toFixed(1)}"/><text class="w-lbl" x="${L-6}" y="${(Y(g)+3.5).toFixed(1)}" text-anchor="end">${fmtW(g)}</text>`).join('');
+  const dots=pts.map((p,i)=>`<circle class="w-dot" cx="${X(t[i]).toFixed(1)}" cy="${Y(v[i]).toFixed(1)}" r="${pts.length>40?2:3.5}"/><circle class="w-hit" cx="${X(t[i]).toFixed(1)}" cy="${Y(v[i]).toFixed(1)}" r="14" onclick="selectWeightPoint(${i})"/>`).join('');
+  return `<svg class="w-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbe du poids de corps">
+    ${grid}<path class="w-area" d="${area}"/><path class="w-line" d="${line}"/>${dots}
+    <text class="w-lbl" x="${L}" y="${H-6}" text-anchor="start">${fmtDateShort(pts[0].date)}</text>
+    <text class="w-lbl" x="${W-R}" y="${H-6}" text-anchor="end">${fmtDateShort(pts[pts.length-1].date)}</text></svg>`;
+}
+function selectWeightPoint(i){
+  const p=weightPoints()[i],el=document.getElementById('wRead');
+  if(p&&el)el.innerHTML=`<b>${fmtW(p.kg)} kg</b> · ${fmtDateShort(p.date)}`;
+}
+function weightCardHtml(){
+  const all=getWeightLog(),pts=weightPoints(),today=todayKey();
+  const last=all[all.length-1];
+  let delta='';
+  if(pts.length>=2){
+    const df=pts[pts.length-1].kg-pts[0].kg;
+    delta=`<span class="w-delta ${df>0?'up':df<0?'down':''}">${df>0?'+':''}${fmtW(df)} kg</span> depuis le ${fmtDateShort(pts[0].date)}`;
+  }
+  const chips=[['30','30 j'],['90','90 j'],['all','Tout']].map(([v,l])=>`<button class="ed-chip${_wRange===v?' on':''}" onclick="setWeightRange('${v}')">${l}</button>`).join('');
+  const rows=all.slice(-6).reverse().map(e=>`<div class="w-row"><span>${fmtDateShort(e.date)}</span><b>${fmtW(e.kg)} kg</b><button class="ed-ib${_wDel===e.date?' warn':''}" onclick="deleteWeight('${e.date}')" aria-label="Supprimer la pesée">${_wDel===e.date?'Sûr ?':ic('trash')}</button></div>`).join('');
+  return `<div class="stitle">Poids de corps</div>
+    <div class="w-head"><div class="w-big">${last?fmtW(last.kg):'—'}<small> kg</small></div><div class="w-sub">${delta||(last?'Dernière pesée le '+fmtDateShort(last.date):'Ajoute ta première pesée')}</div></div>
+    <div class="ed-chips" style="margin:12px 0 4px">${chips}</div>
+    ${weightSvg(pts)}
+    <div class="w-read" id="wRead">${pts.length>=2?'Touche un point pour voir la valeur':''}</div>
+    <div class="w-add">
+      <input class="si" id="wKg" type="number" inputmode="decimal" step="0.1" placeholder="kg" aria-label="Poids en kg">
+      <input class="si" id="wDate" type="date" value="${today}" max="${today}" aria-label="Date de la pesée">
+      <button class="btn-calc" onclick="addWeight()">Ajouter</button>
+    </div>
+    ${rows?`<div class="w-list">${rows}</div>`:''}`;
+}
+function refreshWeightCard(){const el=document.getElementById('weightCard');if(el)el.innerHTML=weightCardHtml();}
+function setWeightRange(v){_wRange=v;_wDel=null;refreshWeightCard();}
+function addWeight(){
+  const kg=document.getElementById('wKg'),dt=document.getElementById('wDate');
+  const date=(dt&&dt.value)||todayKey();
+  if(date>todayKey()){showToast('La date ne peut pas être dans le futur');return;}
+  if(!saveBodyWeight(kg?kg.value:'',date)){showToast('Poids invalide (20 à 300 kg)');return;}
+  showToast('Pesée enregistrée');refreshWeightCard();
+}
+function deleteWeight(k){
+  if(_wDel!==k){_wDel=k;refreshWeightCard();setTimeout(()=>{if(_wDel===k){_wDel=null;refreshWeightCard();}},3000);return;}
+  const d=gs();
+  d.weightLog=(d.weightLog||[]).filter(e=>e.date!==k);
+  const log=getWeightLog();
+  if(log.length)d.bodyWeight=log[log.length-1].kg;else delete d.bodyWeight;
+  ss(d);_wDel=null;showToast('Pesée supprimée');refreshWeightCard();
+}
+
+/* ============================================================
+   SAUVEGARDE : export / import JSON
+   ============================================================ */
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function backupLabel(){
+  const t=gs().lastBackup;
+  if(!t)return 'Aucune sauvegarde effectuée pour le moment.';
+  return 'Dernière sauvegarde : '+new Date(t).toLocaleString('fr-FR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+async function exportData(){
+  const payload={app:'GymAddict',format:1,exportedAt:new Date().toISOString(),data:gs()};
+  const json=JSON.stringify(payload);
+  const name='gymaddict-sauvegarde-'+todayKey()+'.json';
+  const done=()=>{const d=gs();d.lastBackup=Date.now();ss(d);const el=document.getElementById('backupLast');if(el)el.textContent=backupLabel();showToast('Sauvegarde exportée');};
+  try{
+    const file=new File([json],name,{type:'application/json'});
+    if(isIOS()&&navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'Sauvegarde GymAddict'});
+      done();return;
+    }
+  }catch(e){if(e&&e.name==='AbortError')return;}
+  const url=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  done();
+}
+function extractBackup(o){
+  if(!o||typeof o!=='object'||Array.isArray(o))return null;
+  const data=(o.app==='GymAddict'&&o.data&&typeof o.data==='object')?o.data:o;
+  if(!data||Array.isArray(data))return null;
+  const known=['workouts','prs','profile','activeDays','runLogs','exNotes','readiness','dayProgram','program','weightLog','sessionMeta','bodyWeight'];
+  if(!known.some(k=>k in data))return null;
+  const isObj=v=>v==null||(typeof v==='object'&&!Array.isArray(v));
+  if(!['workouts','prs','profile','runLogs','exNotes','readiness','dayProgram','program','sessionMeta','exNames','prefs'].every(k=>isObj(data[k])))return null;
+  if(data.activeDays!=null&&!Array.isArray(data.activeDays))return null;
+  if(data.weightLog!=null&&!Array.isArray(data.weightLog))return null;
+  return data;
+}
+let _pendingImport=null;
+function importFileChosen(input){
+  const f=input.files&&input.files[0];input.value='';
+  if(!f)return;
+  if(f.size>8*1024*1024){showToast('Fichier trop volumineux');return;}
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const o=JSON.parse(r.result),data=extractBackup(o);
+      if(!data)throw new Error('format');
+      _pendingImport={data,exportedAt:o&&o.exportedAt};
+      confirmImport();
+    }catch(e){showToast('Fichier de sauvegarde invalide');}
+  };
+  r.onerror=()=>showToast('Lecture du fichier impossible');
+  r.readAsText(f);
+}
+function confirmImport(){
+  const data=_pendingImport.data;
+  const n=Object.keys(data.workouts||{}).filter(k=>Object.values(data.workouts[k]||{}).some(a=>Array.isArray(a)&&a.some(x=>x&&x.done))).length;
+  const when=_pendingImport.exportedAt?new Date(_pendingImport.exportedAt).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):null;
+  edConfirm('Restaurer cette sauvegarde ?',
+    `${when?'Sauvegarde du '+when+' · ':''}${n} séance${n>1?'s':''} · ${Object.keys(data.prs||{}).length} record${Object.keys(data.prs||{}).length>1?'s':''}.<br><b>Toutes les données actuelles de cet appareil seront remplacées.</b>`,
+    'Restaurer','applyImport');
+}
+function applyImport(){
+  const o=_pendingImport;if(!o)return;
+  try{localStorage.setItem('fitcore_before_import',localStorage.getItem('fitcore')||'');}catch(e){}
+  ss(o.data);
+  try{localStorage.removeItem(TIMER_KEY);}catch(e){}
+  _pendingImport=null;
+  closeModal();showToast('Données restaurées');
+  setTimeout(()=>location.reload(),700);
+}
+
 const TABS=['today','week','stats','cardio','profile'];
 function switchTab(name){
   TABS.forEach(t=>{
@@ -2081,6 +2516,7 @@ function init(){
     const prof=getProfile();
     if(!prof.since)saveProfile({since:todayKey()});
   }
+  migrateWeightLog();
   renderToday();
   renderWeek();
   updateStreak();

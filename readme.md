@@ -35,7 +35,7 @@ Cinq onglets en barre de navigation basse :
 | Onglet | Rôle |
 |---|---|
 | **Séance** | La séance du jour : exercices, séries, minuteur, tonnage |
-| **Programme** | La semaine type, avec accès à chaque séance |
+| **Programme** | La semaine type, avec accès à chaque séance et à l'**éditeur de programme** |
 | **Stats** | Calendrier d'activité, courbes de progression, radar musculaire, records |
 | **Cardio** | Zones de fréquence cardiaque et séances de running |
 | **Profil** | Pseudo, avatar, statistiques globales, données personnelles, réinitialisation |
@@ -49,13 +49,24 @@ Cinq onglets en barre de navigation basse :
 - **Séance suggérée automatiquement** selon le jour de la semaine, avec un badge « Suggéré ». Le bouton **Changer** permet de choisir n'importe quel autre programme (badge « Modifié ») et de **revenir au programme suggéré** en un clic.
 - **Carte d'en-tête** avec le nom de la séance, le pourcentage d'avancement et le nombre de séries validées (`x/y séries`), accompagnés d'une barre de progression en temps réel.
 - **Saisie des séries** : pour chaque série, une case à cocher, la charge (kg) et les répétitions (ou les secondes pour les exercices chronométrés comme la planche ou les mountain climbers).
-- **Préremplissage intelligent** : la charge proposée est celle de votre record sur l'exercice, et les répétitions sont celles de la cible du programme.
+- **Préremplissage intelligent** : la charge proposée est celle de votre dernière séance sur l'exercice (à défaut, votre record), et les répétitions sont celles de la cible du programme.
+- **« Dernière fois »** : sous chaque exercice, votre meilleure série de la séance précédente (ex. *Dernière fois · lun. 12 oct. : 60 kg × 10 · 4 séries*).
+- **Suggestion de progression (surcharge progressive)** : quand toutes les séries prévues ont été validées à la séance précédente, l'appli le signale.
+  - Si chaque série a atteint le haut de la fourchette de répétitions, elle propose d'**augmenter la charge** (+2,5 kg par défaut, réglable par exercice) avec un bouton **Appliquer** qui met à jour les séries restantes.
+  - Sinon, elle conseille de **garder la charge** et de viser le haut de la fourchette avant de monter.
+  - Aucune suggestion pour les exercices à l'échec, chronométrés ou d'échauffement.
 - **Cartes d'exercice en accordéon** : l'exercice en cours est mis en avant, un exercice terminé se replie automatiquement (réouvrable d'un tap) et l'écran défile vers le suivant.
 - **Badges d'exercice** : compound ou isolation (avec temps de repos indicatif), superset et optionnel pris en charge par le système de badges.
 - **Mémos par exercice** : un champ « Réglages » (ex. *cran 4, prise large*) et un **RPE /10** enregistrés pour chaque exercice et chaque jour.
-- **Minuteur de repos** : se lance automatiquement à chaque série validée, avec une durée adaptée à l'exercice (60 s, 90 s, 2 min…), un bouton **+30 s**, une fermeture manuelle, un passage en alerte visuelle sur les 10 dernières secondes et un message « GO ! » en fin de décompte.
+- **Minuteur de repos fiable** : se lance automatiquement à chaque série validée, avec la durée de repos propre à l'exercice, un bouton **+30 s** et une fermeture manuelle.
+  - Le décompte repose sur l'**heure réelle** (et non sur un compteur) : il reste exact même si l'écran se verrouille ou si l'appli passe en arrière-plan, et il est rattrapé au retour. Il est aussi **restauré après un rechargement** de la page.
+  - **Alertes** : alerte visuelle sur les 10 dernières secondes, bips sur les 3 dernières, puis **sonnerie + vibration** et message « GO ! » à la fin (vibration non disponible sur Safari iPhone).
+  - L'**écran reste allumé** pendant le repos (Wake Lock) sur les navigateurs compatibles.
+  - Son et vibration se règlent dans **Profil > Minuteur de repos**, avec un bouton de test.
 - **Calculateur d'échauffement** : à partir de votre charge de travail (ou de votre record), génère 5 séries progressives — 40 % × 12, 60 % × 8, 75 % × 5, 85 % × 3, 95 % × 1 — arrondies au 0,5 kg.
 - **Check-in de forme (Readiness)** : au premier affichage d'une séance de salle, un questionnaire à 3 critères sur 5 étoiles (sommeil, énergie et stress, état musculaire). La moyenne donne un score affiché en pastille colorée (vert, jaune, rouge) et un message adapté, avec une suggestion de baisser les charges de 10 à 15 % si la forme est basse.
+- **Résumé de fin de séance** : s'affiche automatiquement quand toutes les séries sont validées (le minuteur est alors coupé), ou à la demande avec le bouton **Résumé de la séance**. Il présente le tonnage (et son équivalence ludique), le nombre de séries, la **durée**, le **RPE moyen**, les **records battus** pendant la séance et l'évolution du tonnage par rapport à la dernière séance identique.
+  - La durée cumule le temps entre les séries validées ; les pauses de plus de 45 min ne sont pas comptées.
 - **Tonnage du jour** : volume total soulevé, converti en équivalence ludique (chats, adultes, motos, vaches, voitures, éléphants d'Afrique, bus…).
 - **Jour de repos** : écran dédié avec streak, régularité, dernière séance effectuée, prochaine séance prévue et accès au choix d'un programme.
 
@@ -65,6 +76,20 @@ Cinq onglets en barre de navigation basse :
 - **1RM estimé** (formule de Brzycki) avec le tableau des pourcentages 100 / 95 / 90 / 85 / 80 / 75 / 70 %.
 - **Force relative** : ratio charge / poids de corps (ex. « 1,5× BW »), affiché dans les records.
 
+### Éditeur de programme
+
+Depuis l'onglet **Programme** (bouton **Modifier**), le programme n'est plus figé dans le code :
+
+- **Semaine type** : choisissez la séance suggérée pour chacun des 7 jours.
+- **Séances** : créer une nouvelle séance, la renommer, choisir sa couleur (rouge, bleu, jaune, vert) ou la supprimer. Les jours qui l'utilisaient repassent en repos.
+- **Exercices** : ajouter, supprimer (confirmation en deux temps), **réordonner** (flèches haut / bas) et modifier chaque exercice :
+  - nom (avec suggestions des exercices déjà connus : réutiliser un nom existant conserve son historique et ses records) ;
+  - nombre de **séries** et **répétitions** (min / max, ou *à l'échec*) ; mode **au temps** en secondes ;
+  - **temps de repos**, type (compound, isolation, échauffement) et **pas de progression** en kg ;
+  - **muscles travaillés**, utilisés pour le radar.
+- **Rétablir le programme d'origine** en un clic.
+- Chaque modification est **enregistrée immédiatement** et prise en compte dans l'écran Séance, le calendrier et les statistiques. Retirer un exercice ne supprime jamais son historique, qui reste consultable dans les graphiques.
+
 ### Statistiques
 
 - **Streak et régularité sur 7 jours**.
@@ -72,7 +97,9 @@ Cinq onglets en barre de navigation basse :
 - **Évolution des charges** : sélection de n'importe quel exercice et trois modes de graphique — **Max** (charge maximale), **Moy** (charge moyenne) et **Tonnage** (volume hebdomadaire, pour suivre la surcharge progressive).
 - **Radar de répartition musculaire** sur les 7 derniers jours : pecs, dos, épaules, biceps, triceps, abdos, jambes.
 - **Records personnels** : les 20 meilleures charges avec date, répétitions, 1RM estimé et ratio au poids de corps.
-- **Poids de corps** modifiable directement depuis cet onglet.
+- **Historique des séances** : bouton en haut de l'onglet (ou tap sur une case du calendrier d'activité). La liste est classée par mois ; chaque séance ouvre un détail complet : tonnage, séries, durée, RPE moyen, records, séries par exercice, réglages machine et RPE notés, course éventuelle.
+  - **Dupliquer cette séance** : préremplit la séance d'aujourd'hui avec les mêmes charges, répétitions et réglages (rien n'est validé). Impossible si des séries sont déjà validées aujourd'hui.
+- **Courbe du poids de corps** : journal de pesées (une par jour, date modifiable), courbe sur 30 jours, 90 jours ou tout l'historique, variation sur la période, valeur d'un point au toucher, suppression d'une pesée. La dernière pesée alimente les ratios de force et les zones cardio ; saisir le poids depuis le Profil ou les Records ajoute aussi une pesée.
 
 ### Cardio et running
 
@@ -89,7 +116,9 @@ Cinq onglets en barre de navigation basse :
 - **Ancienneté** : date d'inscription et nombre de jours depuis.
 - **Statistiques globales** : streak, séances totales, régularité 7 jours, tonnage total cumulé en tonnes, et équivalence ludique sur l'ensemble de vos entraînements.
 - **Données personnelles** : poids de corps et âge (utilisés pour les ratios de force et les zones cardio).
-- **Zone danger** : réinitialisation complète des données, avec confirmation. Le pseudo et l'avatar sont conservés et l'ancienneté repart de zéro.
+- **Minuteur de repos** : interrupteurs pour le son et la vibration, et bouton pour tester l'alerte.
+- **Sauvegarde des données** : **Sauvegarder** exporte tout (séances, records, programme, poids, préférences…) dans un fichier JSON daté ; **Restaurer** réimporte un fichier après confirmation et remplace les données de l'appareil. La date de la dernière sauvegarde est affichée. Sur iPhone / iPad, l'export passe par la feuille de partage (Enregistrer dans Fichiers). Avant une restauration, l'état précédent est copié dans une clé de secours `fitcore_before_import`.
+- **Zone danger** : réinitialisation complète des données, avec confirmation. Le pseudo, l'avatar, le **programme personnalisé** et les préférences sont conservés ; l'ancienneté repart de zéro.
 
 ---
 
@@ -107,7 +136,7 @@ Planning hebdomadaire suggéré (modifiable jour par jour depuis l'écran Séanc
 | Samedi | Repos | — |
 | Dimanche | Repos | — |
 
-Le sélecteur de programme propose aussi **Jambes & Mollets** (6 exercices), **Épaules & Trapèzes**, **Rappel haut du corps** et **Repos total**. Chaque séance est repérée par une couleur : rouge (pecs / triceps, rappel), bleu (dos / épaules), vert (abdos), jaune (jambes).
+Ce planning est le programme **par défaut** : il peut être entièrement personnalisé avec l'éditeur ci-dessus. Le sélecteur de programme propose aussi **Jambes & Mollets** (6 exercices), **Épaules & Trapèzes**, **Rappel haut du corps** et **Repos total**. Chaque séance est repérée par une couleur : rouge (pecs / triceps, rappel), bleu (dos / épaules), vert (abdos), jaune (jambes).
 
 La vue **Programme** liste les 7 jours avec leur avancement ; un tap sur un jour ouvre un tiroir (*drawer*) qui permet de saisir ou consulter la séance, ou de changer de programme.
 
@@ -117,7 +146,7 @@ La vue **Programme** liste les 7 jours avec leur avancement ; un tap sur un jour
 
 - **Manifeste** (`manifest.json`) : nom « Gym Addict », affichage `standalone`, orientation portrait, catégories santé / fitness / sport, icônes 192 et 512 px (dont une version *maskable*) et icône Apple Touch.
 - **Raccourcis d'application** : « Aujourd'hui » et « Programme ».
-- **Service Worker** (`sw.js`, cache `ga-v2.7.1`) :
+- **Service Worker** (`sw.js`, cache `ga-v2.8.1`) :
   - **pré-cache** de l'application (HTML, CSS, JS, manifeste, icônes) à l'installation ;
   - stratégie **cache-first** pour les fichiers de l'appli, les polices Google Fonts et Chart.js (CDN) ;
   - stratégie **network-first** avec repli sur le cache pour les autres requêtes ;
@@ -132,9 +161,9 @@ La vue **Programme** liste les 7 jours avec leur avancement ; un tap sur un jour
 
 ## Données et confidentialité
 
-Toutes les données restent **sur votre appareil**, dans le `localStorage` du navigateur (clé `fitcore`) : séances, charges, répétitions, notes, RPE, records, jours actifs, journaux de course, check-ins, profil, poids de corps et âge. Aucune donnée n'est envoyée à un serveur et aucun compte n'est nécessaire.
+Toutes les données restent **sur votre appareil**, dans le `localStorage` du navigateur (clé `fitcore`) : séances, charges, répétitions, notes, RPE, records, jours actifs, journaux de course, check-ins, profil, poids de corps, âge, **programme personnalisé** et préférences du minuteur. L'état du minuteur en cours est conservé séparément (clé `ga_timer`). La base contient aussi le journal de poids (`weightLog`) et les métadonnées de séance (`sessionMeta` : durée, séance, records battus). Aucune donnée n'est envoyée à un serveur et aucun compte n'est nécessaire.
 
-Conséquences à connaître : les données sont propres à chaque navigateur et chaque appareil, et vider les données du site ou désinstaller l'appli les supprime. Il n'existe pas encore d'export ni de synchronisation entre appareils.
+Conséquences à connaître : les données sont propres à chaque navigateur et chaque appareil, et vider les données du site ou désinstaller l'appli les supprime. La synchronisation automatique entre appareils n'existe pas : utilisez l'export / import JSON (Profil > Sauvegarde des données).
 
 ---
 
@@ -157,7 +186,7 @@ Une connexion est nécessaire au premier chargement pour récupérer Chart.js et
 ```
 ├── index.html        Structure, onglets, minuteur, fenêtre de record, tiroir, navigation
 ├── style.css         Thème clair / sombre, composants, animations
-├── script.js         Programme, logique métier, rendu des 5 onglets, graphiques
+├── script.js         Programme par défaut, éditeur, logique métier, minuteur, rendu des 5 onglets, graphiques
 ├── manifest.json     Métadonnées PWA, icônes, raccourcis
 ├── sw.js             Service Worker (cache et mode hors ligne)
 ├── readme.md         Ce fichier
@@ -171,3 +200,5 @@ Une connexion est nécessaire au premier chargement pour récupérer Chart.js et
 - **Chart.js 4.4.1** : courbes, barres et radar
 - **Google Fonts** : Anton (titres et chiffres), Figtree (texte)
 - **Service Worker** et **Web App Manifest**
+- **Web Audio**, **Vibration** et **Screen Wake Lock** (minuteur de repos)
+- **SVG** inline pour la courbe du poids, **File API / Web Share** pour l'export et l'import
