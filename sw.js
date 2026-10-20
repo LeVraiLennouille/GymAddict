@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'ga-v2.8.2';
+const CACHE_VERSION = 'ga-v2.8.3';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_FONTS   = `${CACHE_VERSION}-fonts`;
 const CACHE_CONFIG  = 'ga-config'; /* non versionné : config des rappels, lue ici et écrite par la page */
