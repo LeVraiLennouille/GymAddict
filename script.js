@@ -7,6 +7,7 @@ const ICONS={
   star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8L3.5 9.7l5.9-.8z"/>',
   dumbbell:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
   back:'<path d="M15 6l-6 6 6 6"/>',
+  pulse:'<path d="M3 12h4l3-7 4 14 3-7h4"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   up:'<path d="M6 14l6-6 6 6"/>',
@@ -205,6 +206,7 @@ function initProgram(){ _progCfg = loadProgramConfig(); applyProgram(_progCfg); 
 function saveProgramConfig(){
   const d = gs(); d.program = _progCfg; ss(d);
   applyProgram(_progCfg); rememberExNames(); triggerSave();
+  scheduleReminderSync();
 }
 
 /* Répétitions : lecture / reconstruction du libellé (« 8-12 reps », « Échec », « 30–60 sec ») */
@@ -256,8 +258,11 @@ function saveRunLog(dateKey,field,val){
   if(!d.runLogs)d.runLogs={};
   if(!d.runLogs[dateKey])d.runLogs[dateKey]={done:false,duration:'',distance:'',rpe:''};
   d.runLogs[dateKey][field]=val;
+  if(field==='duration'||field==='distance')d.runLogs[dateKey].pace=runPaceSec(d.runLogs[dateKey])||'';
   ss(d); triggerSave();
   if(field==='done'&&val)markDayActive(dateKey);
+  updateRunPaceUI(dateKey);
+  if(field==='done')scheduleReminderSync();
 }
 
 function getPRs(){const d=gs();return d.prs||{};}
@@ -846,6 +851,7 @@ function getDayProgress(dateKey,_dayName){
   if(!prog||prog.type==='rest'||prog.exercises.length===0)return{done:0,total:0,pct:0};
   let total=0,done=0;
   prog.exercises.forEach(ex=>{
+    if(isSkipped(dateKey,ex.id))return;
     for(let i=0;i<ex.sets;i++){total++;if(getSet(dateKey,ex.id,i).done)done++;}
   });
   return{done,total,pct:total>0?Math.round(done/total*100):0};
@@ -966,6 +972,12 @@ function applyProgression(dateKey,exId,weight){
 }
 
 function renderExBlock(ex,dateKey){
+  if(isSkipped(dateKey,ex.id)){
+    return `<div class="ex-block">
+      <div class="ex-header"><div class="ex-name">${ex.name}</div><span class="badge b-optional">Sauté</span></div>
+      <div class="ex-body"><div class="ex-skipped"><span>Machine prise ou exercice passé : il ne compte pas dans la progression.</span><button onclick="skipExercise('${dateKey}','${ex.id}',false)">Reprendre</button></div></div>
+    </div>`;
+  }
   const prs=getPRs();
   const exPR=prs[ex.id];
   const note=getExNote(dateKey,ex.id);
@@ -1022,6 +1034,7 @@ function renderExBlock(ex,dateKey){
       <span class="ex-count">${doneN}/${ex.sets}</span><span class="ex-check">${ic('check')}</span>
     </div>
     <div class="ex-body">
+    ${doneN<ex.sets?`<div class="ex-actions"><button onclick="postponeExercise('${dateKey}','${ex.id}')">Machine prise ? Passer à la fin</button>${doneN===0?`<button onclick="skipExercise('${dateKey}','${ex.id}',true)">Sauter</button>`:''}</div>`:''}
     <div class="ex-meta">${ex.sets} séries · ${ex.repsLabel}${exPR?` · PR : <b style="color:var(--orange)">${exPR.weight}kg × ${exPR.reps}reps</b>`:''}
     </div>
     ${lastHtml}${progHtml}
@@ -1048,6 +1061,7 @@ function toggleExCard(id){const c=document.getElementById('exc-'+id);if(c&&c.cla
 function refreshExCards(dateKey,scroll){
   let hasActive=false,justDone=false,activeEl=null;
   document.querySelectorAll('.ex-card').forEach(c=>{
+    if(c.classList.contains('skipped')){c.classList.remove('active','open','done');return;}
     const id=c.dataset.ex,n=+c.dataset.sets;let d=0;
     for(let i=0;i<n;i++)if(getSet(dateKey,id,i).done)d++;
     const full=n>0&&d===n;
@@ -1112,10 +1126,14 @@ function toggleSet(dateKey,exId,idx,exName,restSec){
   updateDayProgressBar(dateKey);
   updateTonnageCard();
   refreshExCards(dateKey,true);
+  maybeFinishDay(dateKey,newDone);
+}
+/* Fin de séance : bouton « Résumé » + résumé automatique quand tout ce qui n'est pas sauté est validé */
+function maybeFinishDay(dateKey,allowFinish){
   const pr=getDayProgress(dateKey);
   const fb=document.getElementById('finishBtn');
   if(fb)fb.style.display=pr.done>0?'flex':'none';
-  if(newDone&&pr.total>0&&pr.pct===100&&!getSessionMeta(dateKey).summaryShown){
+  if(allowFinish&&pr.total>0&&pr.pct===100&&!getSessionMeta(dateKey).summaryShown){
     updateSessionMeta(dateKey,m=>{m.summaryShown=true;});
     dismissTimer();buzz([120,60,120]);
     setTimeout(()=>{const pp=document.getElementById('prPopup');if(pp)pp.classList.remove('show');showSummary(dateKey);},900);
@@ -1153,7 +1171,7 @@ function updateDayProgressBar(dateKey){
   if(txt)txt.textContent=p.done+'/'+p.total+' séries';
 }
 
-function renderToday(){
+function renderToday(noPopup){
   const dateKey=todayKey();
   const {key:dayName,prog}=getEffectiveDayProgram(dateKey);
   const isOverridden=getDayProgramOverride(dateKey)!==null;
@@ -1197,7 +1215,7 @@ function renderToday(){
   </div>`;
   if(prog.exercises.length>0){
     html+=`<div class="stitle">Exercices</div>`;
-    prog.exercises.forEach(ex=>{html+=`<div class="card ex-card" id="exc-${ex.id}" data-ex="${ex.id}" data-sets="${ex.sets}" style="--c:${progColor(dayName)}">${renderExBlock(ex,dateKey)}</div>`;});
+    orderedExercises(dateKey,prog).forEach(ex=>{const sk=isSkipped(dateKey,ex.id);html+=`<div class="card ex-card${sk?' skipped':''}" id="exc-${ex.id}" data-ex="${ex.id}" data-sets="${ex.sets}" style="--c:${progColor(dayName)}">${renderExBlock(ex,dateKey)}</div>`;});
   }
 
   html+=`<div class="card tonnage-card" id="tonnageCard" style="${tonnage>0?'display:block':'display:none'}">
@@ -1210,10 +1228,11 @@ function renderToday(){
       </div>
     </div>
   </div>`;
+  html+=sessionNoteCardHtml(dateKey);
   html+=`<button class="finish-btn" id="finishBtn" onclick="showSummary('${dateKey}')" style="display:${p.done>0?'flex':'none'}">${ic('check')} Résumé de la séance</button>`;
   el.innerHTML=html;
   refreshExCards(dateKey,false);
-  setTimeout(()=>showReadinessPopup(),900);
+  if(!noPopup)setTimeout(()=>showReadinessPopup(),900);
 }
 
 function buildRunCard(running,dateKey,btnId,toggleFn){
@@ -1252,16 +1271,13 @@ function renderWeek(){
   const todayName=getDayName();
   const el=document.getElementById('week-content');
   let html=`<div class="week-top"><div class="chip">Programme de la semaine</div><button class="prog-switch-btn ed-open" onclick="openProgramEditor()">${ic('edit')} Modifier</button></div>`;
+  const WK=weekDateKeys();
+  html+=weekCardioHtml(WK);
   DAYS_ORDER.forEach(dayName=>{
     const sugKey=WEEKLY_SUGGESTIONS[dayName]||'repos';
     const prog=PROGRAM[sugKey];
     const isToday=dayName===todayName;
-    const today=new Date();today.setHours(0,0,0,0);
-    const jsDay=DAY_NUMBER[dayName];
-    const d=new Date(today);
-    let diff=jsDay-today.getDay();
-    d.setDate(today.getDate()+diff);
-    const dateKey=dateToKey(d);
+    const dateKey=WK[dayName];
     const override=getDayProgramOverride(dateKey);
     const effectiveProg=override&&PROGRAM[override]?PROGRAM[override]:prog;
     const effKey=override&&PROGRAM[override]?override:sugKey;
@@ -1279,6 +1295,7 @@ function renderWeek(){
         <div class="wname">${DAY_LABELS[dayName]} ${overrideBadge}</div>
         <div class="wsub">${effectiveProg.fullName}</div>
         <div style="margin-top:4px">${typeTag}</div>
+        ${weekRunLineHtml(dayName,dateKey)}
       </div>
       <div style="margin-left:auto;text-align:right;display:flex;align-items:center;gap:8px">
         <div>
@@ -1482,20 +1499,13 @@ function renderCardio(){
       <div class="zone-bpm" style="color:${zoneColors[i]}">${lo}–${hi}</div>
     </div>`;
   });
-  const runDays=[
-    {key:'mardi', icon:'',name:'Mardi — Fractionné HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',   detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
-    {key:'jeudi', icon:'',name:'Jeudi — Tempo',              desc:'Allure soutenue sur 5km pour développer ton seuil lactique.',detail:'5km continu, légèrement inconfortable mais constant'},
-    {key:'dimanche',icon:'',name:'Dimanche — Sortie Longue', desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',    detail:'45–60min très lent, conversation possible'},
-  ];
   let runCardsHtml='';
-  runDays.forEach(rd=>{
-    const today=new Date();today.setHours(0,0,0,0);
-    const jsDay=DAY_NUMBER[rd.key];
-    const d=new Date(today);d.setDate(today.getDate()+(jsDay-today.getDay()+7)%7);
-    const dateKey=dateToKey(d);
+  const WK=weekDateKeys();
+  RUN_PLAN.forEach(rd=>{
+    const dateKey=WK[rd.key];
     const rl=getRunLog(dateKey);
-    runCardsHtml+=`<div class="run-card">
-      <div class="run-title">${rd.name}</div>
+    runCardsHtml+=`<div class="run-card" id="crun-${dateKey}">
+      <div class="run-title">${rd.name}<span class="run-date">${fmtDateShort(dateKey)}</span></div>
       <div class="run-step" style="margin-bottom:6px">${rd.desc}</div>
       <div class="run-step" style="font-style:italic">${rd.detail}</div>
       <div class="run-log" style="margin-top:12px">
@@ -1509,6 +1519,7 @@ function renderCardio(){
           <input class="si" type="number" inputmode="numeric" placeholder="7" min="1" max="10" value="${rl.rpe}"
             onchange="debounce('cr-r-${dateKey}',()=>{saveRunLog('${dateKey}','rpe',this.value);},400)"></div>
       </div>
+      <div class="run-pace" id="pace-${dateKey}">${paceHtml(rl)}</div>
       <button class="run-done-btn${rl.done?' done':''}" id="crunBtn-${dateKey}"
         onclick="toggleRunDone2('${dateKey}')">
         ${rl.done?'Séance terminée':'Marquer comme faite'}
@@ -1554,6 +1565,7 @@ function toggleRunDone2(dateKey){
   const btn=document.getElementById('crunBtn-'+dateKey);
   if(btn){btn.className='run-done-btn'+(v?' done':'');btn.textContent=v?'Séance terminée':'Marquer comme faite';}
   markDayActive(dateKey);
+  scheduleReminderSync();
 }
 
 function calcZones(){
@@ -1578,6 +1590,7 @@ function calcZones(){
 function openDayDrawer(dayName,dateKey){
   const {key:pKey,prog}=getEffectiveDayProgram(dateKey);
   if(!prog||prog.type==='rest')return;
+  _drawerCtx={dayName,dateKey};
   document.getElementById('drawerTitle').textContent=prog.fullName;
   const p=getDayProgress(dateKey,dayName);
   let html=`
@@ -1591,10 +1604,11 @@ function openDayDrawer(dayName,dateKey){
   </div>`;
   if(prog.exercises.length>0){
     html+=`<div class="stitle">Exercices</div><div class="card">`;
-    prog.exercises.forEach(ex=>{html+=renderExBlock(ex,dateKey);});
+    orderedExercises(dateKey,prog).forEach(ex=>{html+=renderExBlock(ex,dateKey);});
     html+=`</div>`;
   }
 
+  html+=sessionNoteCardHtml(dateKey);
   html+=`<div style="text-align:center;padding:8px 0 4px">
     <button class="prog-switch-btn" style="font-size:12px" onclick="closeDrawer();showProgramPicker('${dateKey}')">Changer ce programme</button>
   </div>`;
@@ -1711,6 +1725,7 @@ function renderProfile(){
     <button class="warmup-btn pref-test" onclick="testTimerAlert()">Tester l'alerte</button>
   </div>
 
+  ${reminderCardHtml()}
   <div class="stitle">Sauvegarde des données</div>
   <div class="card" style="margin-bottom:12px">
     <div class="pref-sub" style="margin:0 0 14px;font-size:13px;line-height:1.5">Tes données sont stockées uniquement sur cet appareil. Exporte-les pour changer de téléphone ou te protéger d'un nettoyage du navigateur.</div>
@@ -2120,6 +2135,7 @@ function touchSession(k){
     if(!m.start){m.start=now;m.ms=0;}
     else if(m.last&&now-m.last<=SESSION_GAP)m.ms=(m.ms||0)+(now-m.last);
     m.last=now;
+    scheduleReminderSync();
     if(!m.prog){
       const e=getEffectiveDayProgram(k);
       if(e.prog&&e.prog.type!=='rest')m.prog={key:e.key,name:e.prog.fullName};
@@ -2166,7 +2182,8 @@ function sessionStats(k){
   const rl=d.runLogs&&d.runLogs[k]&&d.runLogs[k].done?d.runLogs[k]:null;
   return{date:k,exs,prog,run:rl,sets,tonnage:Math.round(tonnage),
     rpe:rpes.length?Math.round(rpes.reduce((a,b)=>a+b,0)/rpes.length*10)/10:null,
-    minutes:meta.ms>0?Math.max(1,Math.round(meta.ms/60000)):null,start:meta.start||null,prs:meta.prs||[]};
+    minutes:meta.ms>0?Math.max(1,Math.round(meta.ms/60000)):null,start:meta.start||null,prs:meta.prs||[],
+    note:meta.note||'',skipped:((d.skipped&&d.skipped[k])||[]).filter(id=>!exs.some(e=>e.id===id)).map(id=>findExName(id))};
 }
 function getSessionDates(){
   const d=gs(),set=new Set();
@@ -2178,7 +2195,7 @@ const stColor=st=>st.prog&&st.prog.key?progColor(st.prog.key):(st.exs.length?'#3
 const stName=st=>st.prog?st.prog.name:(st.exs.length?'Séance':'Course');
 const fmtDateLong=k=>new Date(k+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 const fmtDateShort=k=>new Date(k+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-const runLine=r=>[(r.distance?r.distance+' km':''),(r.duration?r.duration+' min':''),(r.rpe?'RPE '+r.rpe:'')].filter(Boolean).join(' · ');
+const runLine=r=>[(r.distance?r.distance+' km':''),(r.duration?r.duration+' min':''),(runPaceSec(r)?fmtPace(runPaceSec(r))+' /km':''),(r.rpe?'RPE '+r.rpe:'')].filter(Boolean).join(' · ');
 
 /* ---------- Écran Historique ---------- */
 let _hist={view:'list',key:null,direct:false};
@@ -2235,6 +2252,7 @@ function histListHtml(){
       if(st.tonnage>0)parts.push(fmtTonnage(st.tonnage));
       if(st.minutes)parts.push(st.minutes+' min');
       if(st.prs.length)parts.push(st.prs.length+' PR');
+      if(st.note)parts.push('note');
     }
     if(st.run)parts.push((st.exs.length?'+ course ':'')+runLine(st.run));
     html+=`<div class="hist-row" style="--c:${stColor(st)}" onclick="histOpen('${k}')" role="button" tabindex="0">
@@ -2267,6 +2285,8 @@ function histDetailHtml(k){
   }else{
     html+=`<div class="card hist-hero" style="--c:var(--c-blue)"><div class="hist-hero-name">Course</div><div class="hist-hero-date">${fmtDateLong(k)}</div></div>`;
   }
+  if(st.skipped.length)html+=`<div class="hist-skipped">Exercices sautés : ${escA(st.skipped.join(', '))}</div>`;
+  if(st.exs.length)html+=`<div class="card hist-note-card"><span class="set-lbl ed-lbl">NOTES DE LA SÉANCE</span><textarea class="ex-note-inp note-ta" rows="3" maxlength="600" placeholder="Ajouter une note…" onchange="saveSessionNote('${k}',this.value)">${escA(st.note)}</textarea></div>`;
   if(st.run)html+=`<div class="stitle">Course</div><div class="card hist-ex"><div class="hist-ex-name">${escA(runLine(st.run)||'Séance faite')}</div></div>`;
   if(st.exs.length&&k!==todayKey()){
     html+=`<button class="btn-calc ed-add" onclick="duplicateSession('${k}')">${ic('plus')} Dupliquer cette séance</button>
@@ -2290,6 +2310,8 @@ function duplicateSession(k){
   const d2=gs();
   if(d2.workouts)delete d2.workouts[t];
   if(d2.exNotes)delete d2.exNotes[t];
+  if(d2.skipped)delete d2.skipped[t];
+  if(d2.dayOrder)delete d2.dayOrder[t];
   ss(d2);
   saveDayProgramOverride(t,key);
   let copied=0;
@@ -2337,6 +2359,8 @@ function showSummary(k){
       ${st.exs.length?sumGridHtml(st):''}
       ${eq&&st.tonnage>0?`<div class="sum-eq">soit ${eq.count} ${eq.name}</div>`:''}
       ${delta}${prs}
+      ${st.skipped.length?`<div class="sum-sub" style="margin-top:12px">Sautés : ${escA(st.skipped.join(', '))}</div>`:''}
+      <div class="sum-note"><span class="set-lbl ed-lbl">NOTE DE SÉANCE (OPTIONNELLE)</span><textarea class="ex-note-inp note-ta" rows="2" maxlength="600" placeholder="Sensations, douleurs, à améliorer…" onchange="saveSessionNote('${k}',this.value)">${escA(st.note)}</textarea></div>
       ${st.run?`<div class="sum-sub" style="margin-top:12px">Course : ${escA(runLine(st.run))}</div>`:''}
       <div style="display:flex;gap:10px;margin-top:20px">
         <button class="run-done-btn" style="flex:1;margin-top:0;background:none;border:1.5px solid var(--border);color:var(--muted)" onclick="closeModal();openSessionDetail('${k}')">Voir le détail</button>
@@ -2497,6 +2521,262 @@ function applyImport(){
   setTimeout(()=>location.reload(),700);
 }
 
+/* ============================================================
+   NOTES DE SÉANCE · SAUTER / REPORTER UN EXERCICE
+   ============================================================ */
+let _drawerCtx=null;
+function saveSessionNote(k,v){
+  const text=String(v==null?'':v).slice(0,600);
+  updateSessionMeta(k,m=>{if(text.trim())m.note=text;else delete m.note;});
+  triggerSave();
+}
+function sessionNoteCardHtml(k){
+  const note=getSessionMeta(k).note||'';
+  return `<div class="card note-card"><span class="set-lbl ed-lbl">NOTES DE LA SÉANCE</span>
+    <textarea class="ex-note-inp note-ta" rows="3" maxlength="600" placeholder="Forme du jour, sensations, douleurs, ce qu'il faut améliorer…"
+      oninput="debounce('sn-${k}',()=>saveSessionNote('${k}',this.value),700)" onchange="saveSessionNote('${k}',this.value)">${escA(note)}</textarea></div>`;
+}
+const getSkipped=k=>{const d=gs();return (d.skipped&&d.skipped[k])||[];};
+const isSkipped=(k,id)=>getSkipped(k).includes(id);
+function orderedExercises(k,prog){
+  const ord=(gs().dayOrder||{})[k];
+  if(!ord||!ord.length)return prog.exercises;
+  const byId={};prog.exercises.forEach(e=>{byId[e.id]=e;});
+  const out=ord.map(id=>byId[id]).filter(Boolean);
+  prog.exercises.forEach(e=>{if(!out.includes(e))out.push(e);});
+  return out;
+}
+function rerenderDay(k,scroll){
+  const drawer=document.getElementById('dayDrawer');
+  if(k===todayKey())renderToday(true);
+  if(drawer&&drawer.classList.contains('open')&&_drawerCtx&&_drawerCtx.dateKey===k){
+    const body=document.getElementById('drawerBody'),top=body.scrollTop;
+    openDayDrawer(_drawerCtx.dayName,k);body.scrollTop=top;
+  }
+  if(scroll&&k===todayKey()){
+    const a=document.querySelector('#today-content .ex-card.active');
+    if(a)requestAnimationFrame(()=>a.scrollIntoView({behavior:'smooth',block:'start'}));
+  }
+}
+function skipExercise(k,id,on){
+  const d=gs();if(!d.skipped)d.skipped={};
+  const a=(d.skipped[k]||[]).filter(x=>x!==id);
+  if(on)a.push(id);
+  if(a.length)d.skipped[k]=a;else delete d.skipped[k];
+  ss(d);triggerSave();
+  rerenderDay(k,on);
+  showToast(on?'Exercice sauté':'Exercice repris');
+  if(on)maybeFinishDay(k,true);
+}
+function postponeExercise(k,id){
+  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
+  const ord=orderedExercises(k,prog).map(e=>e.id);
+  if(ord[ord.length-1]===id){showToast("C'est déjà le dernier exercice");return;}
+  const d=gs();if(!d.dayOrder)d.dayOrder={};
+  d.dayOrder[k]=ord.filter(x=>x!==id).concat(id);
+  ss(d);triggerSave();
+  rerenderDay(k,true);
+  showToast('Reporté à la fin de la séance');
+}
+
+/* ============================================================
+   SEMAINE ISO · RUNNING · ALLURE · ROUTAGE PAR L'URL
+   ============================================================ */
+const RUN_PLAN=[
+  {key:'mardi',   short:'Fractionné HIIT', name:'Mardi — Fractionné HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',    detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
+  {key:'jeudi',   short:'Tempo',           name:'Jeudi — Tempo',             desc:'Allure soutenue sur 5km pour développer ton seuil lactique.', detail:'5km continu, légèrement inconfortable mais constant'},
+  {key:'dimanche',short:'Sortie longue',   name:'Dimanche — Sortie Longue',  desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',     detail:'45–60min très lent, conversation possible'}
+];
+/* Semaine du lundi au dimanche contenant aujourd'hui : { lundi:'AAAA-MM-JJ', … } */
+function weekDateKeys(){
+  const t=new Date();t.setHours(0,0,0,0);
+  const mon=new Date(t);mon.setDate(t.getDate()-((t.getDay()+6)%7));
+  const out={};
+  DAYS_ORDER.forEach((n,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);out[n]=dateToKey(d);});
+  return out;
+}
+function runPaceSec(rl){
+  const dur=parseFloat(rl&&rl.duration),dist=parseFloat(String((rl&&rl.distance)||'').replace(',','.'));
+  return dur>0&&dist>0?Math.round(dur*60/dist):0;
+}
+function fmtPace(sec){if(!sec)return '';const s=Math.round(sec);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function paceHtml(rl){
+  const p=runPaceSec(rl);
+  return p?`Allure moyenne : <b>${fmtPace(p)}</b> /km`:'Allure moyenne : renseigne la durée et la distance';
+}
+function updateRunPaceUI(k){const el=document.getElementById('pace-'+k);if(el)el.innerHTML=paceHtml(getRunLog(k));}
+function fmtDuration(min){const m=Math.round(min);return m>=60?Math.floor(m/60)+'h'+String(m%60).padStart(2,'0'):m+' min';}
+
+function weekRunLineHtml(dayName,dateKey){
+  const rd=RUN_PLAN.find(r=>r.key===dayName);if(!rd)return '';
+  const rl=getRunLog(dateKey),pace=runPaceSec(rl);
+  const stats=[rl.distance?rl.distance+' km':'',rl.duration?rl.duration+' min':'',pace?fmtPace(pace)+' /km':''].filter(Boolean).join(' · ');
+  return `<div class="wrun${rl.done?' done':''}" onclick="event.stopPropagation();openRun('${dateKey}')" role="button" tabindex="0">${ic(rl.done?'check':'pulse')}<span><b>${rd.short}</b>${rl.done?(stats?' · '+stats:' · faite'):' · à faire'}</span></div>`;
+}
+function weekCardioHtml(WK){
+  let done=0,km=0,min=0,paceDur=0,paceDist=0;
+  RUN_PLAN.forEach(rd=>{
+    const rl=getRunLog(WK[rd.key]);
+    if(rl.done)done++;
+    const dur=parseFloat(rl.duration)||0,dist=parseFloat(String(rl.distance||'').replace(',','.'))||0;
+    km+=dist;min+=dur;
+    if(dur>0&&dist>0){paceDur+=dur;paceDist+=dist;}
+  });
+  const pace=paceDist>0?fmtPace(paceDur*60/paceDist):'—';
+  const cells=[['Sorties',done+'/'+RUN_PLAN.length],['Distance',km>0?(Math.round(km*10)/10).toLocaleString('fr-FR')+' km':'—'],['Durée',min>0?fmtDuration(min):'—'],['Allure /km',pace]];
+  return `<div class="card wk-cardio"><div class="stitle">Cardio de la semaine</div>
+    <div class="sum-grid wk-grid">${cells.map(([l,v])=>`<div class="sum-cell"><div class="sum-v">${v}</div><div class="sum-l">${l}</div></div>`).join('')}</div></div>`;
+}
+function openRun(k){
+  switchTab('cardio');
+  const sec=document.getElementById('runSection');
+  if(sec&&sec.style.display==='none')toggleRunSection();
+  setTimeout(()=>{const c=document.getElementById('crun-'+k);if(c)c.scrollIntoView({behavior:'smooth',block:'center'});},120);
+}
+/* Raccourcis PWA / notifications : index.html#today | #week | #stats | #cardio | #profile */
+function handleHash(){
+  const h=(location.hash||'').replace('#','');
+  if(!h||!TABS.includes(h))return;
+  switchTab(h);
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+}
+
+/* ============================================================
+   RAPPELS D'ENTRAÎNEMENT (notifications)
+   - Réglages : prefs.reminder = { enabled, time:'HH:MM', days:[0-6] }  (0 = dimanche)
+   - Le service worker lit une copie de la config (cache « ga-config ») et affiche la notification à l'heure dite :
+       · via Periodic Background Sync (Chrome / Edge Android, appli installée) même appli fermée ;
+       · sinon, tant que l'appli est ouverte (contrôle chaque minute).
+   - Pas de rappel si la séance du jour est déjà faite, ni si un rappel a déjà été envoyé aujourd'hui.
+   - Nécessite HTTPS (ou localhost).
+   ============================================================ */
+const REM_DAYS=[[1,'Lun'],[2,'Mar'],[3,'Mer'],[4,'Jeu'],[5,'Ven'],[6,'Sam'],[0,'Dim']];
+const reminderSupported=()=>'Notification' in window&&'serviceWorker' in navigator&&window.isSecureContext;
+function getReminder(){return Object.assign({enabled:false,time:'18:00',days:[]},(gs().prefs||{}).reminder||{});}
+function saveReminder(patch){
+  const d=gs();d.prefs=Object.assign({},d.prefs||{});
+  d.prefs.reminder=Object.assign(getReminder(),patch);
+  ss(d);scheduleReminderSync();
+}
+function isTrainedOn(k){
+  const d=gs();
+  if(Object.values((d.workouts&&d.workouts[k])||{}).some(a=>(a||[]).some(x=>x&&x.done)))return true;
+  return !!(d.runLogs&&d.runLogs[k]&&d.runLogs[k].done);
+}
+/* Texte de la notification par jour de la semaine (index JS 0-6) */
+function reminderLabels(){
+  const out={};
+  DAY_JS_MAP.forEach((name,i)=>{
+    const parts=[],p=PROGRAM[WEEKLY_SUGGESTIONS[name]];
+    if(p&&p.type!=='rest')parts.push(p.fullName);
+    const run=RUN_PLAN.find(r=>r.key===name);
+    if(run)parts.push(run.short);
+    if(parts.length)out[i]=parts.join(' + ');
+  });
+  return out;
+}
+function defaultReminderDays(){return Object.keys(reminderLabels()).map(Number);}
+const remConfigUrl=()=>new URL('./__ga-reminder-config',document.baseURI).href;
+async function syncReminderConfig(){
+  if(!('caches' in window))return;
+  try{
+    const r=getReminder(),c=await caches.open('ga-config'),old=await c.match(remConfigUrl());
+    const prev=old?await old.json():{};
+    const cfg={
+      enabled:!!r.enabled&&typeof Notification!=='undefined'&&Notification.permission==='granted',
+      time:r.time,days:r.days,labels:reminderLabels(),
+      trainedDate:isTrainedOn(todayKey())?todayKey():'',
+      lastNotified:prev.lastNotified||''
+    };
+    await c.put(remConfigUrl(),new Response(JSON.stringify(cfg),{headers:{'Content-Type':'application/json'}}));
+  }catch(e){}
+}
+function scheduleReminderSync(){debounce('rem-sync',syncReminderConfig,400);}
+async function postToSW(msg){
+  try{const reg=await navigator.serviceWorker.ready;if(reg.active)reg.active.postMessage(msg);}catch(e){}
+}
+let _remTimer=null;
+function startReminderLoop(){
+  clearInterval(_remTimer);_remTimer=null;
+  if(!reminderSupported()||!getReminder().enabled)return;
+  syncReminderConfig().then(()=>postToSW({type:'check-reminder'}));
+  _remTimer=setInterval(()=>postToSW({type:'check-reminder'}),60000);
+  registerPeriodicReminder();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&_remTimer)postToSW({type:'check-reminder'});});
+async function registerPeriodicReminder(){
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    if(!('periodicSync' in reg))return false;
+    const st=await navigator.permissions.query({name:'periodic-background-sync'});
+    if(st.state!=='granted')return false;
+    await reg.periodicSync.register('ga-reminder',{minInterval:30*60*1000});
+    return true;
+  }catch(e){return false;}
+}
+async function toggleReminder(){
+  const r=getReminder();
+  if(r.enabled){saveReminder({enabled:false});startReminderLoop();renderProfile();updateReminderStatus();return;}
+  if(!reminderSupported()){showToast('Rappels indisponibles (HTTPS requis)');return;}
+  let perm=Notification.permission;
+  if(perm==='default')perm=await Notification.requestPermission();
+  if(perm!=='granted'){showToast('Notifications bloquées dans le navigateur');renderProfile();updateReminderStatus();return;}
+  saveReminder({enabled:true,days:(r.days&&r.days.length)?r.days:defaultReminderDays()});
+  startReminderLoop();renderProfile();updateReminderStatus();
+  showToast('Rappels activés');
+}
+function setReminderTime(v){if(/^\d{2}:\d{2}$/.test(v)){saveReminder({time:v});startReminderLoop();}}
+function toggleReminderDay(n){
+  const r=getReminder();
+  const days=r.days.includes(n)?r.days.filter(x=>x!==n):r.days.concat(n);
+  saveReminder({days});renderProfile();updateReminderStatus();
+}
+async function testReminder(){
+  if(!reminderSupported()||Notification.permission!=='granted'){showToast("Active d'abord les rappels");return;}
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const icon=new URL('assets/icon-192.png',document.baseURI).href;
+    await reg.showNotification('GymAddict · Test',{body:'Les rappels fonctionnent. Bonne séance !',tag:'ga-test',icon,badge:icon,data:{url:'./index.html#today'}});
+  }catch(e){showToast("Impossible d'afficher la notification");}
+}
+function reminderCardHtml(){
+  const head='<div class="stitle">Rappels d\'entraînement</div>';
+  if(!('Notification' in window)||!('serviceWorker' in navigator))
+    return `${head}<div class="card" style="margin-bottom:12px"><div class="pref-sub" style="margin:0;font-size:13px;line-height:1.5">Les notifications ne sont pas prises en charge par ce navigateur.</div></div>`;
+  if(!window.isSecureContext)
+    return `${head}<div class="card" style="margin-bottom:12px"><div class="pref-sub" style="margin:0;font-size:13px;line-height:1.5">Les rappels nécessitent que l'appli soit servie en <b>HTTPS</b>.</div></div>`;
+  const r=getReminder(),denied=Notification.permission==='denied',on=r.enabled&&Notification.permission==='granted';
+  const body=on?`
+    <div class="rem-time"><span class="pref-name">Heure du rappel</span>
+      <input class="si" type="time" value="${escA(r.time)}" onchange="setReminderTime(this.value)" aria-label="Heure du rappel"></div>
+    <div class="rem-days" role="group" aria-label="Jours de rappel">${REM_DAYS.map(([n,l])=>`<button class="ed-chip${r.days.includes(n)?' on':''}" onclick="toggleReminderDay(${n})" aria-pressed="${r.days.includes(n)}">${l}</button>`).join('')}</div>
+    <button class="warmup-btn pref-test" onclick="testReminder()">Tester la notification</button>`:'';
+  return `${head}<div class="card" style="margin-bottom:12px">
+    <div class="pref-row" style="${on?'':'border-bottom:none;padding-bottom:0'}">
+      <div><div class="pref-name">Me rappeler de m'entraîner</div>
+      <div class="pref-sub">${denied?'Notifications bloquées : autorise-les dans les réglages du navigateur ou du site.':'Notification les jours d\'entraînement, sauf si la séance est déjà faite'}</div></div>
+      <button class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="Rappels d'entraînement" onclick="toggleReminder()"><i></i></button>
+    </div>${body}
+    <div class="pref-sub rem-status" id="remStatus"></div>
+  </div>`;
+}
+async function updateReminderStatus(){
+  const el=document.getElementById('remStatus');if(!el)return;
+  const r=getReminder();
+  if(!(r.enabled&&Notification.permission==='granted')){el.textContent='';return;}
+  let bg=false;
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    if('periodicSync' in reg){
+      const tags=await reg.periodicSync.getTags();
+      bg=tags.includes('ga-reminder');
+    }
+  }catch(e){}
+  el.textContent=bg
+    ?'Rappel actif, même appli fermée (selon la gestion de la batterie de ton appareil).'
+    :"Ton navigateur n'autorise pas l'envoi appli fermée : le rappel arrive tant que l'appli est ouverte, même en arrière-plan.";
+}
+
 const TABS=['today','week','stats','cardio','profile'];
 function switchTab(name){
   TABS.forEach(t=>{
@@ -2506,7 +2786,7 @@ function switchTab(name){
   if(name==='stats')renderStats();
   if(name==='week')renderWeek();
   if(name==='cardio')renderCardio();
-  if(name==='profile')renderProfile();
+  if(name==='profile'){renderProfile();updateReminderStatus();}
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -2522,6 +2802,9 @@ function init(){
   updateStreak();
   updateReg();
   restoreTimer();
+  handleHash();
+  window.addEventListener('hashchange',handleHash);
+  startReminderLoop();
 
   document.addEventListener('pointerdown',function(e){
     const pop=document.getElementById('prPopup');

@@ -9,7 +9,11 @@
   "background_color": "#ECEDF0",
   "theme_color": "#ECEDF0",
   "lang": "fr",
-  "categories": ["health", "fitness", "sports"],
+  "categories": [
+    "health",
+    "fitness",
+    "sports"
+  ],
   "icons": [
     {
       "src": "assets/icon-192.png",
@@ -42,14 +46,48 @@
       "short_name": "Today",
       "description": "Ouvrir la séance du jour",
       "url": "./index.html#today",
-      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Programme",
       "short_name": "Programme",
       "description": "Voir le programme de la semaine",
       "url": "./index.html#week",
-      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Cardio",
+      "short_name": "Cardio",
+      "description": "Zones et sorties running",
+      "url": "./index.html#cardio",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Statistiques",
+      "short_name": "Stats",
+      "description": "Progression, historique et poids",
+      "url": "./index.html#stats",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "screenshots": [],

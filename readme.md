@@ -67,6 +67,8 @@ Cinq onglets en barre de navigation basse :
 - **Check-in de forme (Readiness)** : au premier affichage d'une séance de salle, un questionnaire à 3 critères sur 5 étoiles (sommeil, énergie et stress, état musculaire). La moyenne donne un score affiché en pastille colorée (vert, jaune, rouge) et un message adapté, avec une suggestion de baisser les charges de 10 à 15 % si la forme est basse.
 - **Résumé de fin de séance** : s'affiche automatiquement quand toutes les séries sont validées (le minuteur est alors coupé), ou à la demande avec le bouton **Résumé de la séance**. Il présente le tonnage (et son équivalence ludique), le nombre de séries, la **durée**, le **RPE moyen**, les **records battus** pendant la séance et l'évolution du tonnage par rapport à la dernière séance identique.
   - La durée cumule le temps entre les séries validées ; les pauses de plus de 45 min ne sont pas comptées.
+- **Machine prise ? Sauter ou reporter un exercice** : sous chaque exercice non terminé, **Passer à la fin** le déplace en dernière position de la séance du jour, et **Sauter** (tant qu'aucune série n'est validée) le met de côté avec un bouton **Reprendre**. Un exercice sauté ne compte pas dans la progression : la séance est complète, et son résumé s'affiche, quand tout le reste est validé. Les exercices sautés apparaissent dans le résumé et dans l'historique.
+- **Notes de séance** : un champ libre sous les exercices (forme du jour, douleurs, points à améliorer), enregistré automatiquement, modifiable aussi depuis le résumé de fin de séance, le tiroir d'un jour du Programme et le détail de l'historique.
 - **Tonnage du jour** : volume total soulevé, converti en équivalence ludique (chats, adultes, motos, vaches, voitures, éléphants d'Afrique, bus…).
 - **Jour de repos** : écran dédié avec streak, régularité, dernière séance effectuée, prochaine séance prévue et accès au choix d'un programme.
 
@@ -108,7 +110,8 @@ Depuis l'onglet **Programme** (bouton **Modifier**), le programme n'est plus fig
   - Mardi — **Fractionné HIIT** : 10 min d'échauffement, 10 à 15 × (30 s sprint / 30 s récupération), 5 min de retour au calme.
   - Jeudi — **Tempo** : 5 km continus à allure soutenue.
   - Dimanche — **Sortie longue** : 45 à 60 min en endurance fondamentale (zone 2).
-- **Journal de course** : durée, distance, RPE (1-10) et bouton « Marquer comme faite ». Une séance terminée compte dans le streak, la régularité et le calendrier d'activité.
+- **Journal de course** : durée, distance, RPE (1-10) et bouton « Marquer comme faite ». L'**allure moyenne** (min/km) est calculée dès que la durée et la distance sont saisies, affichée sur la carte et **enregistrée** avec la sortie (champ `pace`, en secondes par km). Elle apparaît aussi dans l'historique et le planning.
+- Les cartes affichent les sorties de la **semaine en cours** (lundi à dimanche), avec leur date, pour retrouver une sortie déjà faite. Une séance terminée compte dans le streak, la régularité et le calendrier d'activité.
 
 ### Profil
 
@@ -117,6 +120,9 @@ Depuis l'onglet **Programme** (bouton **Modifier**), le programme n'est plus fig
 - **Statistiques globales** : streak, séances totales, régularité 7 jours, tonnage total cumulé en tonnes, et équivalence ludique sur l'ensemble de vos entraînements.
 - **Données personnelles** : poids de corps et âge (utilisés pour les ratios de force et les zones cardio).
 - **Minuteur de repos** : interrupteurs pour le son et la vibration, et bouton pour tester l'alerte.
+- **Rappels d'entraînement** : activation par interrupteur (la permission de notification est demandée à ce moment), heure du rappel et jours choisis (par défaut, les jours d'entraînement de ton programme, running compris), bouton **Tester la notification**. Le texte indique la séance du jour, par exemple « Dos & Épaules + Fractionné HIIT ».
+  - Aucun rappel si la séance ou la sortie du jour est déjà faite, ni plus d'un rappel par jour ; il part au plus tard 3 h après l'heure choisie.
+  - **HTTPS obligatoire** (ou localhost). Sur Chrome / Edge Android avec l'appli installée, le rappel peut partir **appli fermée** (Periodic Background Sync, selon l'engagement et la gestion de la batterie). Ailleurs (Firefox, Safari / iPhone), il n'est envoyé que tant que l'appli est ouverte, même en arrière-plan. Sans serveur de notifications push, un envoi à heure fixe appli fermée ne peut pas être garanti sur tous les navigateurs.
 - **Sauvegarde des données** : **Sauvegarder** exporte tout (séances, records, programme, poids, préférences…) dans un fichier JSON daté ; **Restaurer** réimporte un fichier après confirmation et remplace les données de l'appareil. La date de la dernière sauvegarde est affichée. Sur iPhone / iPad, l'export passe par la feuille de partage (Enregistrer dans Fichiers). Avant une restauration, l'état précédent est copié dans une clé de secours `fitcore_before_import`.
 - **Zone danger** : réinitialisation complète des données, avec confirmation. Le pseudo, l'avatar, le **programme personnalisé** et les préférences sont conservés ; l'ancienneté repart de zéro.
 
@@ -138,21 +144,22 @@ Planning hebdomadaire suggéré (modifiable jour par jour depuis l'écran Séanc
 
 Ce planning est le programme **par défaut** : il peut être entièrement personnalisé avec l'éditeur ci-dessus. Le sélecteur de programme propose aussi **Jambes & Mollets** (6 exercices), **Épaules & Trapèzes**, **Rappel haut du corps** et **Repos total**. Chaque séance est repérée par une couleur : rouge (pecs / triceps, rappel), bleu (dos / épaules), vert (abdos), jaune (jambes).
 
-La vue **Programme** liste les 7 jours avec leur avancement ; un tap sur un jour ouvre un tiroir (*drawer*) qui permet de saisir ou consulter la séance, ou de changer de programme.
+La vue **Programme** affiche la semaine en cours, du lundi au dimanche. Un encart **Cardio de la semaine** résume les sorties running (sorties faites sur 3, distance, durée, allure moyenne), et chaque jour de running (mardi, jeudi, dimanche) affiche sa sortie (*Fractionné HIIT*, *Tempo*, *Sortie longue*) : à faire, ou faite avec distance, durée et allure ; un tap ouvre la carte correspondante dans l'onglet Cardio. La vue liste aussi les 7 jours avec leur avancement ; un tap sur un jour ouvre un tiroir (*drawer*) qui permet de saisir ou consulter la séance, ou de changer de programme.
 
 ---
 
 ## PWA et mode hors ligne
 
 - **Manifeste** (`manifest.json`) : nom « Gym Addict », affichage `standalone`, orientation portrait, catégories santé / fitness / sport, icônes 192 et 512 px (dont une version *maskable*) et icône Apple Touch.
-- **Raccourcis d'application** : « Aujourd'hui » et « Programme ».
-- **Service Worker** (`sw.js`, cache `ga-v2.8.1`) :
+- **Raccourcis d'application** (appui long sur l'icône) : « Aujourd'hui », « Programme », « Cardio » et « Statistiques ». L'appli lit l'ancre de l'URL (`#today`, `#week`, `#stats`, `#cardio`, `#profile`) au démarrage et quand l'URL change, puis la nettoie : elle s'ouvre directement sur le bon onglet.
+- **Service Worker** (`sw.js`, cache `ga-v2.8.2`) :
   - **pré-cache** de l'application (HTML, CSS, JS, manifeste, icônes) à l'installation ;
   - stratégie **cache-first** pour les fichiers de l'appli, les polices Google Fonts et Chart.js (CDN) ;
   - stratégie **network-first** avec repli sur le cache pour les autres requêtes ;
   - **nettoyage automatique** des anciens caches à l'activation, avec prise de contrôle immédiate des pages ouvertes ;
   - message de repli « Hors ligne » quand une ressource est indisponible ;
-  - gestionnaire de synchronisation en arrière-plan (`sync-workouts`) réservé pour une future synchronisation.
+  - gestionnaire de synchronisation en arrière-plan (`sync-workouts`) réservé pour une future synchronisation ;
+  - **rappels d'entraînement** : lecture de la configuration (cache `ga-config`, conservé lors des mises à jour), affichage de la notification et ouverture de l'appli au tap (`notificationclick`).
 - **Compatibilité iOS** : mode plein écran, barre d'état translucide, gestion des zones sûres (`viewport-fit=cover`).
 
 > Pour publier une nouvelle version, incrémentez `CACHE_VERSION` dans `sw.js` afin que les appareils récupèrent les fichiers à jour.
@@ -161,7 +168,7 @@ La vue **Programme** liste les 7 jours avec leur avancement ; un tap sur un jour
 
 ## Données et confidentialité
 
-Toutes les données restent **sur votre appareil**, dans le `localStorage` du navigateur (clé `fitcore`) : séances, charges, répétitions, notes, RPE, records, jours actifs, journaux de course, check-ins, profil, poids de corps, âge, **programme personnalisé** et préférences du minuteur. L'état du minuteur en cours est conservé séparément (clé `ga_timer`). La base contient aussi le journal de poids (`weightLog`) et les métadonnées de séance (`sessionMeta` : durée, séance, records battus). Aucune donnée n'est envoyée à un serveur et aucun compte n'est nécessaire.
+Toutes les données restent **sur votre appareil**, dans le `localStorage` du navigateur (clé `fitcore`) : séances, charges, répétitions, notes, RPE, records, jours actifs, journaux de course, check-ins, profil, poids de corps, âge, **programme personnalisé** et préférences du minuteur. L'état du minuteur en cours est conservé séparément (clé `ga_timer`). La base contient aussi les exercices sautés et l'ordre du jour (`skipped`, `dayOrder`), les réglages de rappel (`prefs.reminder`), le journal de poids (`weightLog`) et les métadonnées de séance (`sessionMeta` : durée, séance, records battus, note de séance). Aucune donnée n'est envoyée à un serveur et aucun compte n'est nécessaire.
 
 Conséquences à connaître : les données sont propres à chaque navigateur et chaque appareil, et vider les données du site ou désinstaller l'appli les supprime. La synchronisation automatique entre appareils n'existe pas : utilisez l'export / import JSON (Profil > Sauvegarde des données).
 

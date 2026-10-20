@@ -489,3 +489,39 @@ input,select{-webkit-user-select:text;user-select:text}
 .bk-btns .ic{width:18px;height:18px}
 .bk-restore{background:none!important;border:1.5px solid var(--border)!important;color:#fff!important}
 .bk-last{margin-top:12px}
+
+/* ============================================================
+   v3.0 — Notes · sauter un exercice · cardio du planning · rappels
+   ============================================================ */
+.note-card{margin-bottom:12px}
+.note-ta{width:100%;min-height:76px;resize:vertical;font-family:inherit;line-height:1.45}
+.note-card .ed-lbl,.sum-note .ed-lbl,.hist-note-card .ed-lbl{margin-bottom:8px}
+.sum-note{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.hist-note-card{padding:16px}
+.hist-skipped{font-size:13px;color:var(--dim);margin:2px 2px 12px}
+
+.ex-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.ex-actions button{background:none;border:1.5px solid var(--border);color:#C8CCD6;border-radius:99px;padding:0 14px;min-height:36px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.ex-card.skipped{opacity:.72}
+.ex-card.skipped .ex-body{display:block!important}
+.ex-skipped{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:var(--dim);line-height:1.4;padding:4px 0 2px}
+.ex-skipped button{background:var(--card2);color:#fff;border:none;border-radius:99px;padding:0 16px;min-height:38px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0;font-family:inherit}
+
+.wk-cardio{margin-bottom:12px}
+.wk-grid{grid-template-columns:repeat(4,1fr);gap:6px}
+.wk-grid .sum-cell{padding:10px 4px}
+.wk-grid .sum-v{font-size:19px}
+.wk-grid .sum-l{font-size:9px;letter-spacing:.6px}
+.wrun{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:5px 10px 5px 8px;border-radius:99px;background:rgba(91,150,255,.14);color:#BCD2FF;font-size:12px;cursor:pointer;max-width:100%}
+.wrun .ic{width:14px;height:14px;flex-shrink:0}
+.wrun b{font-weight:800}
+.wrun.done{background:rgba(52,208,122,.16);color:#C9F3DA}
+.run-date{font-family:var(--fm);font-size:11px;font-weight:400;color:var(--dim);margin-left:8px;text-transform:capitalize}
+.run-pace{font-size:12px;color:var(--dim);margin:10px 0 2px}
+.run-pace b{color:#fff;font-family:var(--fm)}
+
+.rem-time{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0}
+.rem-time .si{width:auto;min-width:120px;text-align:center}
+.rem-days{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:4px}
+.rem-days .ed-chip{padding:8px 12px;min-height:38px;margin:0}
+.rem-status{margin-top:12px}
