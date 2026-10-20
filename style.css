@@ -1,3 +1,8 @@
+@font-face {
+    font-family: "Figtree";
+    src: url("assets/Figtree.ttf") format("truetype");
+}
+
 /* GymAddict — DA "Scoreboard" : canevas gris clair, cartes noires à bandeau couleur, chiffres condensés.
    Variables conservées pour script.js : --green = accent, --orange = records (jaune), --blue = cardio. */
 :root{
