@@ -67,6 +67,8 @@ Cinq onglets en barre de navigation basse :
 - **Check-in de forme (Readiness)** : au premier affichage d'une séance de salle, un questionnaire à 3 critères sur 5 étoiles (sommeil, énergie et stress, état musculaire). La moyenne donne un score affiché en pastille colorée (vert, jaune, rouge) et un message adapté, avec une suggestion de baisser les charges de 10 à 15 % si la forme est basse.
 - **Résumé de fin de séance** : s'affiche automatiquement quand toutes les séries sont validées (le minuteur est alors coupé), ou à la demande avec le bouton **Résumé de la séance**. Il présente le tonnage (et son équivalence ludique), le nombre de séries, la **durée**, le **RPE moyen**, les **records battus** pendant la séance et l'évolution du tonnage par rapport à la dernière séance identique.
   - La durée cumule le temps entre les séries validées ; les pauses de plus de 45 min ne sont pas comptées.
+- **Supersets** : deux exercices (ou plus) qui portent la même lettre (A à D, réglable dans l'éditeur) sont placés côte à côte et s'ouvrent ensemble. Après la série du premier, aucun repos : l'appli te dit d'enchaîner avec le suivant ; le minuteur ne démarre qu'après le dernier exercice du superset, avec le repos le plus long du groupe.
+- **Exercice de remplacement** (bouton **Remplacer**, tant qu'aucune série n'est validée) : l'appli propose des exercices connus qui travaillent le même muscle et ne sont pas déjà dans la séance (par ressemblance de muscle, de type et de mode), ou tu saisis un autre nom. Le remplaçant reprend les séries et répétitions de l'original, pour aujourd'hui seulement ; **Rétablir** annule tant qu'aucune de ses séries n'est validée. Ses séries comptent dans le tonnage, les records et le volume musculaire, et l'historique garde son nom.
 - **Machine prise ? Sauter ou reporter un exercice** : sous chaque exercice non terminé, **Passer à la fin** le déplace en dernière position de la séance du jour, et **Sauter** (tant qu'aucune série n'est validée) le met de côté avec un bouton **Reprendre**. Un exercice sauté ne compte pas dans la progression : la séance est complète, et son résumé s'affiche, quand tout le reste est validé. Les exercices sautés apparaissent dans le résumé et dans l'historique.
 - **Notes de séance** : un champ libre sous les exercices (forme du jour, douleurs, points à améliorer), enregistré automatiquement, modifiable aussi depuis le résumé de fin de séance, le tiroir d'un jour du Programme et le détail de l'historique.
 - **Tonnage du jour** : volume total soulevé, converti en équivalence ludique (chats, adultes, motos, vaches, voitures, éléphants d'Afrique, bus…).
@@ -89,7 +91,9 @@ Depuis l'onglet **Programme** (bouton **Modifier**), le programme n'est plus fig
   - nombre de **séries** et **répétitions** (min / max, ou *à l'échec*) ; mode **au temps** en secondes ;
   - **temps de repos**, type (compound, isolation, échauffement) et **pas de progression** en kg ;
   - **muscles travaillés**, utilisés pour le radar.
-- **Rétablir le programme d'origine** en un clic.
+- **Superset** (A à D) : deux exercices avec la même lettre sont enchaînés avec un seul repos.
+- **Course à pied** : choisis pour chaque jour une sortie running (ou aucune), crée tes propres types de sorties (nom, description, déroulé) avec des **objectifs de distance, de durée et d'allure**, et fixe un **objectif de distance par semaine**. Les objectifs s'affichent sur la carte de la sortie et dans le planning, et sont comparés à ton résultat (« distance atteinte », « allure tenue », « +30 s/km »). Supprimer un type de sortie ne supprime pas les sorties déjà enregistrées.
+- **Rétablir le programme d'origine** en un clic (séances, semaine type et sorties running).
 - Chaque modification est **enregistrée immédiatement** et prise en compte dans l'écran Séance, le calendrier et les statistiques. Retirer un exercice ne supprime jamais son historique, qui reste consultable dans les graphiques.
 
 ### Statistiques
@@ -101,6 +105,8 @@ Depuis l'onglet **Programme** (bouton **Modifier**), le programme n'est plus fig
 - **Records personnels** : les 20 meilleures charges avec date, répétitions, 1RM estimé et ratio au poids de corps.
 - **Historique des séances** : bouton en haut de l'onglet (ou tap sur une case du calendrier d'activité). La liste est classée par mois ; chaque séance ouvre un détail complet : tonnage, séries, durée, RPE moyen, records, séries par exercice, réglages machine et RPE notés, course éventuelle.
   - **Dupliquer cette séance** : préremplit la séance d'aujourd'hui avec les mêmes charges, répétitions et réglages (rien n'est validé). Impossible si des séries sont déjà validées aujourd'hui.
+- **Objectifs de force et de poids** : une cible par exercice (« développé couché 100 kg ») ou pour le poids de corps. Chaque objectif affiche le chemin parcouru depuis sa création (barre de progression) et une **estimation de la date d'arrivée**, calculée par régression linéaire sur tes charges maximales des 120 derniers jours (au moins 3 séances sur 14 jours) ou sur tes pesées des 90 derniers jours (au moins 2 sur 7 jours). Sans assez de données, avec une progression à l'arrêt ou une tendance opposée, l'appli le dit plutôt que d'inventer une date. Un toast signale l'objectif atteint.
+- **Volume hebdomadaire par muscle** : nombre de séries de travail par muscle sur la semaine (lundi à dimanche), comparé à une zone cible (10 à 20 séries par défaut, réglable muscle par muscle). La barre montre le fait, plus un segment hachuré pour ce qui reste **prévu au programme** jusqu'à dimanche, et une phrase indique quels muscles resteront sous leur minimum. Flèches pour revoir les semaines passées. Règles de comptage : l'échauffement n'est pas compté ; le premier muscle d'un exercice compte une série entière, les suivants une demi-série (les muscles se règlent dans l'éditeur).
 - **Courbe du poids de corps** : journal de pesées (une par jour, date modifiable), courbe sur 30 jours, 90 jours ou tout l'historique, variation sur la période, valeur d'un point au toucher, suppression d'une pesée. La dernière pesée alimente les ratios de force et les zones cardio ; saisir le poids depuis le Profil ou les Records ajoute aussi une pesée.
 
 ### Cardio et running
@@ -144,7 +150,7 @@ Planning hebdomadaire suggéré (modifiable jour par jour depuis l'écran Séanc
 
 Ce planning est le programme **par défaut** : il peut être entièrement personnalisé avec l'éditeur ci-dessus. Le sélecteur de programme propose aussi **Jambes & Mollets** (6 exercices), **Épaules & Trapèzes**, **Rappel haut du corps** et **Repos total**. Chaque séance est repérée par une couleur : rouge (pecs / triceps, rappel), bleu (dos / épaules), vert (abdos), jaune (jambes).
 
-La vue **Programme** affiche la semaine en cours, du lundi au dimanche. Un encart **Cardio de la semaine** résume les sorties running (sorties faites sur 3, distance, durée, allure moyenne), et chaque jour de running (mardi, jeudi, dimanche) affiche sa sortie (*Fractionné HIIT*, *Tempo*, *Sortie longue*) : à faire, ou faite avec distance, durée et allure ; un tap ouvre la carte correspondante dans l'onglet Cardio. La vue liste aussi les 7 jours avec leur avancement ; un tap sur un jour ouvre un tiroir (*drawer*) qui permet de saisir ou consulter la séance, ou de changer de programme.
+La vue **Programme** affiche la semaine en cours, du lundi au dimanche. Un encart **Cardio de la semaine** résume les sorties running prévues (sorties faites, distance avec barre vers l'objectif hebdomadaire, durée, allure moyenne), et chaque jour de running du planning (par défaut mardi, jeudi, dimanche ; modifiable) affiche sa sortie (par défaut *Fractionné HIIT*, *Tempo*, *Sortie longue*) avec son objectif : à faire, ou faite avec distance, durée et allure ; un tap ouvre la carte correspondante dans l'onglet Cardio. La vue liste aussi les 7 jours avec leur avancement ; un tap sur un jour ouvre un tiroir (*drawer*) qui permet de saisir ou consulter la séance, ou de changer de programme.
 
 ---
 
@@ -152,7 +158,7 @@ La vue **Programme** affiche la semaine en cours, du lundi au dimanche. Un encar
 
 - **Manifeste** (`manifest.json`) : nom « Gym Addict », affichage `standalone`, orientation portrait, catégories santé / fitness / sport, icônes 192 et 512 px (dont une version *maskable*) et icône Apple Touch.
 - **Raccourcis d'application** (appui long sur l'icône) : « Aujourd'hui », « Programme », « Cardio » et « Statistiques ». L'appli lit l'ancre de l'URL (`#today`, `#week`, `#stats`, `#cardio`, `#profile`) au démarrage et quand l'URL change, puis la nettoie : elle s'ouvre directement sur le bon onglet.
-- **Service Worker** (`sw.js`, cache `ga-v2.8.2`) :
+- **Service Worker** (`sw.js`, cache `ga-v2.8.4`) :
   - **pré-cache** de l'application (HTML, CSS, JS, manifeste, icônes) à l'installation ;
   - stratégie **cache-first** pour les fichiers de l'appli, les polices Google Fonts et Chart.js (CDN) ;
   - stratégie **network-first** avec repli sur le cache pour les autres requêtes ;
@@ -168,7 +174,7 @@ La vue **Programme** affiche la semaine en cours, du lundi au dimanche. Un encar
 
 ## Données et confidentialité
 
-Toutes les données restent **sur votre appareil**, dans le `localStorage` du navigateur (clé `fitcore`) : séances, charges, répétitions, notes, RPE, records, jours actifs, journaux de course, check-ins, profil, poids de corps, âge, **programme personnalisé** et préférences du minuteur. L'état du minuteur en cours est conservé séparément (clé `ga_timer`). La base contient aussi les exercices sautés et l'ordre du jour (`skipped`, `dayOrder`), les réglages de rappel (`prefs.reminder`), le journal de poids (`weightLog`) et les métadonnées de séance (`sessionMeta` : durée, séance, records battus, note de séance). Aucune donnée n'est envoyée à un serveur et aucun compte n'est nécessaire.
+Toutes les données restent **sur votre appareil**, dans le `localStorage` du navigateur (clé `fitcore`) : séances, charges, répétitions, notes, RPE, records, jours actifs, journaux de course, check-ins, profil, poids de corps, âge, **programme personnalisé** et préférences du minuteur. L'état du minuteur en cours est conservé séparément (clé `ga_timer`). La base contient aussi les exercices sautés, remplacés et l'ordre du jour (`skipped`, `swaps`, `dayOrder`), les objectifs (`goals`), les noms et muscles des exercices (`exNames`, `exDefs`), les réglages de rappel (`prefs.reminder`), le journal de poids (`weightLog`) et les métadonnées de séance (`sessionMeta` : durée, séance, records battus, note de séance). Aucune donnée n'est envoyée à un serveur et aucun compte n'est nécessaire.
 
 Conséquences à connaître : les données sont propres à chaque navigateur et chaque appareil, et vider les données du site ou désinstaller l'appli les supprime. La synchronisation automatique entre appareils n'existe pas : utilisez l'export / import JSON (Profil > Sauvegarde des données).
 

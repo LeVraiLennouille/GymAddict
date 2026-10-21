@@ -106,11 +106,23 @@ const DEFAULT_PROGRAMS = {
 };
 const DEFAULT_ORDER = ['pecs_tri','dos_ep','abdos','jambes','epaules','rappel','repos'];
 const DEFAULT_WEEKLY = {lundi:'pecs_tri', mardi:'dos_ep', mercredi:'abdos', jeudi:'pecs_tri', vendredi:'dos_ep', samedi:'repos', dimanche:'repos'};
+/* Sorties running : types + jours (personnalisables dans l'éditeur) */
+const DEFAULT_RUNS = {
+  hiit:   {name:'Fractionné HIIT', desc:'Intervalles haute intensité pour brûler max de calories.',    detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour', targetDistance:0, targetDuration:35, targetPace:0},
+  tempo:  {name:'Tempo',           desc:'Allure soutenue sur 5km pour développer ton seuil lactique.', detail:'5km continu, légèrement inconfortable mais constant',    targetDistance:5, targetDuration:0,  targetPace:0},
+  longue: {name:'Sortie longue',   desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',     detail:'45–60min très lent, conversation possible',               targetDistance:0, targetDuration:50, targetPace:0}
+};
+const DEFAULT_RUN_ORDER = ['hiit','tempo','longue'];
+const DEFAULT_RUN_WEEKLY = {lundi:'', mardi:'hiit', mercredi:'', jeudi:'tempo', vendredi:'', samedi:'', dimanche:'longue'};
 
 /* Objets « vivants » : remplis par applyProgram() */
 const PROGRAM = {};
 const PROGRAM_PICKER_KEYS = [];
 const WEEKLY_SUGGESTIONS = {};
+const RUNS = {};
+const RUN_ORDER = [];
+const RUN_WEEKLY = {};
+let WEEKLY_KM = 0;
 
 const COLOR_MAP = {red:'var(--c-red)', blue:'var(--c-blue)', yellow:'var(--c-yellow)', green:'var(--c-green)', grey:'#3A3E48'};
 const progColor = k => { const p = PROGRAM[k]; return (p && COLOR_MAP[p.color]) || 'var(--c-green)'; };
@@ -148,8 +160,11 @@ const cloneJSON = o => JSON.parse(JSON.stringify(o));
 const EX_TYPES = ['compound','isolation','echauffement'];
 
 function defaultProgramConfig(){
-  return {v:1, programs:cloneJSON(DEFAULT_PROGRAMS), order:DEFAULT_ORDER.slice(), weekly:Object.assign({},DEFAULT_WEEKLY)};
+  return {v:1, programs:cloneJSON(DEFAULT_PROGRAMS), order:DEFAULT_ORDER.slice(), weekly:Object.assign({},DEFAULT_WEEKLY),
+    runs:cloneJSON(DEFAULT_RUNS), runOrder:DEFAULT_RUN_ORDER.slice(), runWeekly:Object.assign({},DEFAULT_RUN_WEEKLY), weeklyKm:0};
 }
+function txtClean(s, max){ return String(s == null ? '' : s).replace(/[<>"\\`]/g, '').replace(/\s+/g, ' ').trim().slice(0, max); }
+function numIn(v, min, max){ const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return (n >= min && n <= max) ? Math.round(n * 100) / 100 : 0; }
 function sanitizeEx(e){
   const o = Object.assign({}, e);
   o.id = String(e.id); o.name = String(e.name);
@@ -161,6 +176,7 @@ function sanitizeEx(e){
   o.repsLabel = String(e.repsLabel || (o.defaultReps + (e.isTime ? ' sec' : ' reps')));
   if(e.isTime) o.isTime = true; else delete o.isTime;
   const st = parseFloat(e.step); if(st > 0) o.step = st; else delete o.step;
+  if(/^[A-D]$/.test(String(e.superset || ''))) o.superset = String(e.superset); else delete o.superset;
   return o;
 }
 function sanitizeProgramConfig(c){
@@ -181,6 +197,21 @@ function sanitizeProgramConfig(c){
   out.order = (Array.isArray(c.order) ? c.order : Object.keys(out.programs)).filter(k => out.programs[k]);
   Object.keys(out.programs).forEach(k => { if(!out.order.includes(k)) out.order.push(k); });
   DAYS_ORDER.forEach(d => { const k = c.weekly && c.weekly[d]; out.weekly[d] = out.programs[k] ? k : 'repos'; });
+  /* sorties running */
+  const hasRuns = !!(c.runs && typeof c.runs === 'object');
+  const srcRuns = hasRuns ? c.runs : cloneJSON(DEFAULT_RUNS);
+  out.runs = {};
+  Object.keys(srcRuns).forEach(k => {
+    const r = srcRuns[k]; if(!r || typeof r !== 'object') return;
+    out.runs[k] = {name:txtClean(r.name, 40) || 'Sortie', desc:txtClean(r.desc, 240), detail:txtClean(r.detail, 240),
+      targetDistance:numIn(r.targetDistance, 0, 200), targetDuration:numIn(r.targetDuration, 0, 600), targetPace:numIn(r.targetPace, 0, 1800)};
+  });
+  out.runOrder = (hasRuns ? (Array.isArray(c.runOrder) ? c.runOrder : Object.keys(out.runs)) : DEFAULT_RUN_ORDER).filter(k => out.runs[k]);
+  Object.keys(out.runs).forEach(k => { if(!out.runOrder.includes(k)) out.runOrder.push(k); });
+  const srcWeekly = hasRuns ? ((c.runWeekly && typeof c.runWeekly === 'object') ? c.runWeekly : {}) : DEFAULT_RUN_WEEKLY;
+  out.runWeekly = {};
+  DAYS_ORDER.forEach(d => { const k = srcWeekly[d]; out.runWeekly[d] = out.runs[k] ? k : ''; });
+  out.weeklyKm = numIn(c.weeklyKm, 0, 500);
   return out;
 }
 function loadProgramConfig(){ return sanitizeProgramConfig(gs().program) || defaultProgramConfig(); }
@@ -192,13 +223,23 @@ function applyProgram(cfg){
   cfg.order.forEach(k => { if(PROGRAM[k]) PROGRAM_PICKER_KEYS.push(k); });
   Object.keys(WEEKLY_SUGGESTIONS).forEach(k => delete WEEKLY_SUGGESTIONS[k]);
   DAYS_ORDER.forEach(d => { WEEKLY_SUGGESTIONS[d] = PROGRAM[cfg.weekly[d]] ? cfg.weekly[d] : 'repos'; });
+  Object.keys(RUNS).forEach(k => delete RUNS[k]);
+  Object.keys(cfg.runs).forEach(k => { RUNS[k] = cfg.runs[k]; });
+  RUN_ORDER.length = 0; cfg.runOrder.forEach(k => { if(RUNS[k]) RUN_ORDER.push(k); });
+  Object.keys(RUN_WEEKLY).forEach(k => delete RUN_WEEKLY[k]);
+  DAYS_ORDER.forEach(d => { RUN_WEEKLY[d] = RUNS[cfg.runWeekly[d]] ? cfg.runWeekly[d] : ''; });
+  WEEKLY_KM = cfg.weeklyKm || 0;
 }
 
 /* Registre id -> nom : conserve le nom des exercices même retirés du programme (l'historique reste lisible) */
 function rememberExNames(){
-  const d = gs(); const names = d.exNames || {}; let changed = false;
-  Object.values(PROGRAM).forEach(p => p.exercises.forEach(e => { if(names[e.id] !== e.name){ names[e.id] = e.name; changed = true; } }));
-  if(changed){ d.exNames = names; ss(d); }
+  const d = gs(); const names = d.exNames || {}; const defs = d.exDefs || {}; let changed = false;
+  Object.values(PROGRAM).forEach(p => p.exercises.forEach(e => {
+    if(names[e.id] !== e.name){ names[e.id] = e.name; changed = true; }
+    const mini = {id:e.id, name:e.name, type:e.type, muscles:e.muscles, isTime:!!e.isTime};
+    if(JSON.stringify(defs[e.id]) !== JSON.stringify(mini)){ defs[e.id] = mini; changed = true; }
+  }));
+  if(changed){ d.exNames = names; d.exDefs = defs; ss(d); }
 }
 
 let _progCfg = null;
@@ -296,6 +337,7 @@ function saveBodyWeight(w,dateKey){
   d.weightLog=log;
   d.bodyWeight=log[log.length-1].kg;
   ss(d);triggerSave();
+  setTimeout(checkGoalsAchieved,300);
   return true;
 }
 
@@ -432,7 +474,7 @@ function getTodayTonnage(){
   const {prog}=getEffectiveDayProgram(dateKey);const d=gs();
   if(!prog||!d.workouts||!d.workouts[dateKey])return 0;
   let total=0;
-  prog.exercises.forEach(ex=>{
+  dayExercises(dateKey,prog).forEach(ex=>{
     if(ex.isTime)return;
     (d.workouts[dateKey][ex.id]||[]).forEach(s=>{
       if(s&&s.done)total+=(parseFloat(s.weight)||0)*(parseFloat(s.reps)||ex.defaultReps||10);
@@ -558,7 +600,7 @@ function refreshWarmup(){
 }
 
 function closeModal(){
-  ['warmupModal','readinessModal','resetModal','edConfirmModal','summaryModal'].forEach(id=>{
+  ['warmupModal','readinessModal','resetModal','edConfirmModal','summaryModal','swapModal','goalModal','volModal'].forEach(id=>{
     const m=document.getElementById(id);if(m)m.remove();
   });
 }
@@ -824,6 +866,7 @@ function checkAndShowPR(exId,exName,weight,reps){
   if(isNew){
     savePR(exId,weight,reps,todayKey());
     recordSessionPR(todayKey(),exId,exName,w,r);
+    setTimeout(checkGoalsAchieved,700);
     clearTimeout(_prTimer);
     document.getElementById('prPopName').textContent=exName;
     document.getElementById('prPopVal').textContent=w+' kg'+(r?' × '+r+' reps':'');
@@ -850,7 +893,7 @@ function getDayProgress(dateKey,_dayName){
   const {prog}=getEffectiveDayProgram(dateKey);
   if(!prog||prog.type==='rest'||prog.exercises.length===0)return{done:0,total:0,pct:0};
   let total=0,done=0;
-  prog.exercises.forEach(ex=>{
+  dayExercises(dateKey,prog).forEach(ex=>{
     if(isSkipped(dateKey,ex.id))return;
     for(let i=0;i<ex.sets;i++){total++;if(getSet(dateKey,ex.id,i).done)done++;}
   });
@@ -868,7 +911,7 @@ function getMuscleVolumes(){
     const sugKey=(d.dayProgram&&d.dayProgram[key])||WEEKLY_SUGGESTIONS[dayName]||'repos';
     const prog=PROGRAM[sugKey];
     if(!prog||!d.workouts[key])continue;
-    prog.exercises.forEach(ex=>{
+    dayExercises(key,prog).forEach(ex=>{
       (d.workouts[key][ex.id]||[]).forEach(s=>{
         if(s&&s.done){
           const w=parseFloat(s.weight)||20, r=parseFloat(s.reps)||10;
@@ -959,7 +1002,7 @@ function progressionHtml(ex,prog,dateKey,applied){
 }
 function applyProgression(dateKey,exId,weight){
   const {prog}=getEffectiveDayProgram(dateKey);
-  const ex=prog&&prog.exercises.find(e=>e.id===exId); if(!ex)return;
+  const ex=prog&&dayExercises(dateKey,prog).find(e=>e.id===exId); if(!ex)return;
   for(let i=0;i<ex.sets;i++){
     if(getSet(dateKey,exId,i).done)continue;
     saveSet(dateKey,exId,i,'weight',String(weight));
@@ -1034,7 +1077,8 @@ function renderExBlock(ex,dateKey){
       <span class="ex-count">${doneN}/${ex.sets}</span><span class="ex-check">${ic('check')}</span>
     </div>
     <div class="ex-body">
-    ${doneN<ex.sets?`<div class="ex-actions"><button onclick="postponeExercise('${dateKey}','${ex.id}')">Machine prise ? Passer à la fin</button>${doneN===0?`<button onclick="skipExercise('${dateKey}','${ex.id}',true)">Sauter</button>`:''}</div>`:''}
+    ${doneN<ex.sets?`<div class="ex-actions"><button onclick="postponeExercise('${dateKey}','${ex.id}')">Passer à la fin</button>${doneN===0?`<button onclick="skipExercise('${dateKey}','${ex.id}',true)">Sauter</button><button onclick="showSwapModal('${dateKey}','${ex.id}')">Remplacer</button>`:''}</div>`:''}
+    ${ex.swappedFrom?`<div class="ex-swapped">Remplace <b>${escA(ex.swappedName||'')}</b>${doneN===0?` · <button onclick="revertSwap('${dateKey}','${ex.id}')">Rétablir</button>`:''}</div>`:''}
     <div class="ex-meta">${ex.sets} séries · ${ex.repsLabel}${exPR?` · PR : <b style="color:var(--orange)">${exPR.weight}kg × ${exPR.reps}reps</b>`:''}
     </div>
     ${lastHtml}${progHtml}
@@ -1059,7 +1103,7 @@ function renderExBlock(ex,dateKey){
 
 function toggleExCard(id){const c=document.getElementById('exc-'+id);if(c&&c.classList.contains('done'))c.classList.toggle('open');}
 function refreshExCards(dateKey,scroll){
-  let hasActive=false,justDone=false,activeEl=null;
+  let hasActive=false,justDone=false,activeEl=null,activeSS='';
   document.querySelectorAll('.ex-card').forEach(c=>{
     if(c.classList.contains('skipped')){c.classList.remove('active','open','done');return;}
     const id=c.dataset.ex,n=+c.dataset.sets;let d=0;
@@ -1068,7 +1112,11 @@ function refreshExCards(dateKey,scroll){
     if(full&&!c.classList.contains('done'))justDone=true;
     c.classList.toggle('done',full);
     if(!full)c.classList.remove('open');
-    const a=!full&&!hasActive;if(a){hasActive=true;activeEl=c;}
+    let a=false;
+    if(!full){
+      if(!hasActive){a=true;hasActive=true;activeEl=c;activeSS=c.dataset.ss||'';}
+      else if(activeSS&&c.dataset.ss===activeSS)a=true;
+    }
     c.classList.toggle('active',a);
     const k=c.querySelector('.ex-count');if(k)k.textContent=d+'/'+n;
   });
@@ -1078,7 +1126,7 @@ function getTonnageFor(dateKey){
   const {prog}=getEffectiveDayProgram(dateKey);const d=gs();
   if(!prog||!d.workouts||!d.workouts[dateKey])return 0;
   let t=0;
-  prog.exercises.forEach(ex=>{if(ex.isTime)return;(d.workouts[dateKey][ex.id]||[]).forEach(s=>{if(s&&s.done)t+=(parseFloat(s.weight)||0)*(parseFloat(s.reps)||ex.defaultReps||10);});});
+  dayExercises(dateKey,prog).forEach(ex=>{if(ex.isTime)return;(d.workouts[dateKey][ex.id]||[]).forEach(s=>{if(s&&s.done)t+=(parseFloat(s.weight)||0)*(parseFloat(s.reps)||ex.defaultReps||10);});});
   return Math.round(t);
 }
 function restDayHtml(dateKey){
@@ -1114,7 +1162,12 @@ function toggleSet(dateKey,exId,idx,exName,restSec){
   const cb=document.getElementById('cb-'+exId+'-'+idx);
   if(cb)cb.classList.toggle('done',newDone);
   if(newDone){
-    startTimer(restSec||90,exName);
+    const ssNext=supersetNext(dateKey,exId,idx);
+    if(ssNext){
+      showToast('Superset : enchaîne avec '+ssNext.name);
+      const nx=document.getElementById('exc-'+ssNext.id);
+      if(nx)setTimeout(()=>nx.scrollIntoView({behavior:'smooth',block:'center'}),150);
+    }else startTimer(supersetRest(dateKey,exId,restSec),exName);
     const wEl=document.getElementById('w-'+exId+'-'+idx);
     const rEl=document.getElementById('r-'+exId+'-'+idx);
     const wv=wEl?wEl.value:'', rv=rEl?rEl.value:'';
@@ -1215,7 +1268,7 @@ function renderToday(noPopup){
   </div>`;
   if(prog.exercises.length>0){
     html+=`<div class="stitle">Exercices</div>`;
-    orderedExercises(dateKey,prog).forEach(ex=>{const sk=isSkipped(dateKey,ex.id);html+=`<div class="card ex-card${sk?' skipped':''}" id="exc-${ex.id}" data-ex="${ex.id}" data-sets="${ex.sets}" style="--c:${progColor(dayName)}">${renderExBlock(ex,dateKey)}</div>`;});
+    orderedExercises(dateKey,prog).forEach(ex=>{const sk=isSkipped(dateKey,ex.id);html+=`<div class="card ex-card${sk?' skipped':''}${ex.superset?' ss':''}" id="exc-${ex.id}" data-ex="${ex.id}" data-sets="${ex.sets}" data-ss="${ex.superset||''}" style="--c:${progColor(dayName)}">${renderExBlock(ex,dateKey)}</div>`;});
   }
 
   html+=`<div class="card tonnage-card" id="tonnageCard" style="${tonnage>0?'display:block':'display:none'}">
@@ -1349,6 +1402,7 @@ function renderStats(){
     <div class="hist-open-tx"><b>Historique des séances</b><span>${getSessionDates().length} séance${getSessionDates().length>1?'s':''} enregistrée${getSessionDates().length>1?'s':''} · relire et dupliquer</span></div>
     ${ic('chev')}
   </button>
+  <div class="card" id="goalsCard" style="margin-bottom:12px">${goalsCardHtml()}</div>
   <div class="card" style="margin-bottom:12px">
     <div class="stitle">Calendrier d'activité</div>
     ${renderHeatmap()}
@@ -1372,6 +1426,7 @@ function renderStats(){
     <div class="stitle">Repartition Musculaire <span style="font-size:10px;color:var(--dim)">(7 derniers jours)</span></div>
     <canvas id="radarChart" height="250"></canvas>
   </div>
+  <div class="card" id="volumeCard" style="margin-bottom:12px">${volumeCardHtml()}</div>
   <div class="card" id="weightCard" style="margin-bottom:12px">${weightCardHtml()}</div>
   <div class="card" style="margin-bottom:12px">
     <div class="stitle">Records personnels</div>
@@ -1500,25 +1555,25 @@ function renderCardio(){
     </div>`;
   });
   let runCardsHtml='';
-  const WK=weekDateKeys();
-  RUN_PLAN.forEach(rd=>{
-    const dateKey=WK[rd.key];
-    const rl=getRunLog(dateKey);
+  const WK=weekDateKeys(),plan=runPlanList();
+  plan.forEach(({day,run})=>{
+    const dateKey=WK[day],rl=getRunLog(dateKey);
     runCardsHtml+=`<div class="run-card" id="crun-${dateKey}">
-      <div class="run-title">${rd.name}<span class="run-date">${fmtDateShort(dateKey)}</span></div>
-      <div class="run-step" style="margin-bottom:6px">${rd.desc}</div>
-      <div class="run-step" style="font-style:italic">${rd.detail}</div>
+      <div class="run-title">${DAY_LABELS[day]} — ${escA(run.name)}<span class="run-date">${fmtDateShort(dateKey)}</span></div>
+      ${run.desc?`<div class="run-step" style="margin-bottom:6px">${escA(run.desc)}</div>`:''}
+      ${run.detail?`<div class="run-step" style="font-style:italic">${escA(run.detail)}</div>`:''}
       <div class="run-log" style="margin-top:12px">
         <div class="input-col"><span class="set-lbl">DURÉE (min)</span>
-          <input class="si" type="number" inputmode="numeric" placeholder="—" value="${rl.duration}"
+          <input class="si" type="number" inputmode="numeric" placeholder="${run.targetDuration||'—'}" value="${rl.duration}"
             onchange="debounce('cr-d-${dateKey}',()=>{saveRunLog('${dateKey}','duration',this.value);},400)"></div>
         <div class="input-col"><span class="set-lbl">DIST (km)</span>
-          <input class="si" type="number" inputmode="decimal" placeholder="—" value="${rl.distance}"
+          <input class="si" type="number" inputmode="decimal" placeholder="${run.targetDistance||'—'}" value="${rl.distance}"
             onchange="debounce('cr-s-${dateKey}',()=>{saveRunLog('${dateKey}','distance',this.value);},400)"></div>
         <div class="input-col"><span class="set-lbl">RPE (1-10)</span>
           <input class="si" type="number" inputmode="numeric" placeholder="7" min="1" max="10" value="${rl.rpe}"
             onchange="debounce('cr-r-${dateKey}',()=>{saveRunLog('${dateKey}','rpe',this.value);},400)"></div>
       </div>
+      <div class="run-goal" id="rgoal-${dateKey}">${runGoalHtml(run,rl)}</div>
       <div class="run-pace" id="pace-${dateKey}">${paceHtml(rl)}</div>
       <button class="run-done-btn${rl.done?' done':''}" id="crunBtn-${dateKey}"
         onclick="toggleRunDone2('${dateKey}')">
@@ -1526,6 +1581,7 @@ function renderCardio(){
       </button>
     </div>`;
   });
+  if(!plan.length)runCardsHtml=`<div class="empty">Aucune sortie planifiée.<br><button class="prog-switch-btn" style="margin-top:10px" onclick="openProgramEditor()">Planifier mes sorties</button></div>`;
   document.getElementById('cardio-content').innerHTML=`
   <div class="chip">Cardio & running</div>
   <div class="card" style="margin-bottom:12px">
@@ -1543,7 +1599,7 @@ function renderCardio(){
   <div class="card" style="margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleRunSection()">
       <div class="stitle" style="margin-bottom:0">Séances running</div>
-      <span id="runSectionChevron" style="color:var(--dim);font-size:18px;transition:transform .25s">${ic('chev')}</span>
+      <button class="prog-switch-btn ed-open" style="margin-left:auto;margin-right:10px" onclick="event.stopPropagation();openProgramEditor()">${ic('edit')} Modifier</button><span id="runSectionChevron" style="color:var(--dim);font-size:18px;transition:transform .25s">${ic('chev')}</span>
     </div>
     <div id="runSection" style="display:none;margin-top:12px">${runCardsHtml}</div>
   </div>`;
@@ -1809,7 +1865,7 @@ function executeReset(){
 }
 
 function closeModal(){
-  ['warmupModal','readinessModal','resetModal','edConfirmModal','summaryModal'].forEach(id=>{
+  ['warmupModal','readinessModal','resetModal','edConfirmModal','summaryModal','swapModal','goalModal','volModal'].forEach(id=>{
     const m=document.getElementById(id);if(m)m.remove();
   });
 }
@@ -1837,7 +1893,7 @@ function knownExercises(){
   Object.values(PROGRAM).forEach(p=>p.exercises.forEach(e=>{map[e.id]=e.name;}));
   return Object.keys(map).map(id=>({id,name:map[id]})).sort((a,b)=>a.name.localeCompare(b.name));
 }
-function exSummary(ex){return `${ex.sets} × ${escA(ex.repsLabel)} · repos ${fmtRest(ex.restSec)}`;}
+function exSummary(ex){return `${ex.sets} × ${escA(ex.repsLabel)} · repos ${fmtRest(ex.restSec)}${ex.superset?' · Superset '+ex.superset:''}`;}
 const edProg=()=>_progCfg.programs[_ed.key];
 const edSave=()=>saveProgramConfig();
 
@@ -1858,9 +1914,10 @@ function closeProgramEditor(silent){
   if(!el)return;
   el.remove();
   document.body.style.overflow='';
-  if(!silent){renderWeek();renderToday();}
+  if(!silent){renderWeek();renderToday();renderCardio();}
 }
 function edBack(){
+  if(_ed.view==='run'){_ed.view='home';_ed.runKey=null;edRender();return;}
   if(_ed.view==='prog'){_ed.view='home';_ed.key=null;_ed.open=null;_ed.pendingDel=null;edRender();}
   else closeProgramEditor();
 }
@@ -1868,6 +1925,11 @@ function edRender(){
   const body=document.getElementById('edBody');if(!body)return;
   const title=document.getElementById('edTitle'),back=document.getElementById('edBack');
   if(_ed.view==='prog'&&!edProg())_ed.view='home';
+  if(_ed.view==='run'){
+    const r=_progCfg.runs[_ed.runKey];
+    if(r){title.textContent=r.name;back.innerHTML=ic('back');body.innerHTML=edRunHtml();return;}
+    _ed.view='home';
+  }
   if(_ed.view==='prog'){
     title.textContent=edProg().fullName;
     back.innerHTML=ic('back');
@@ -1897,6 +1959,7 @@ function edHomeHtml(){
     <div class="stitle">Séances</div>
     <div class="ed-list">${list}</div>
     <button class="btn-calc ed-add" onclick="edNewProg()">${ic('plus')} Nouvelle séance</button>
+    ${edRunSectionHtml()}
     <button class="ed-reset" onclick="edConfirmReset()">${ic('undo')} Rétablir le programme d'origine</button>`;
 }
 function edSetDay(d,k){
@@ -1984,6 +2047,8 @@ function edExForm(ex,i){
     </div>
     <span class="set-lbl ed-lbl">TYPE</span>
     <div class="ed-chips">${types}</div>
+    <span class="set-lbl ed-lbl">SUPERSET <span style="text-transform:none;letter-spacing:0">(même lettre = enchaînés, un seul repos)</span></span>
+    <div class="ed-chips">${['','A','B','C','D'].map(l=>`<button class="ed-chip${(ex.superset||'')===l?' on':''}" onclick="edSuperset(${i},'${l}')">${l||'Aucun'}</button>`).join('')}</div>
     <div class="ed-grid2">
       <div class="input-col"><span class="set-lbl">REPOS</span><select class="si" onchange="edRest(${i},this.value)">${restOpts}</select></div>
       <div class="input-col"><span class="set-lbl">PROGRESSION (+KG)</span><input class="si" type="number" inputmode="decimal" step="0.25" min="0.25" placeholder="2,5" value="${ex.step>0?ex.step:''}" onchange="edStep(${i},this.value)"></div>
@@ -2068,6 +2133,7 @@ function edToggle(i,what){
   }
   edSave();edRender();
 }
+function edSuperset(i,l){const ex=edProg().exercises[i];if(l)ex.superset=l;else delete ex.superset;edSave();edRender();}
 function edType(i,t){edProg().exercises[i].type=t;edSave();edRender();}
 function edRest(i,v){edProg().exercises[i].restSec=parseInt(v)||90;edSave();edRefreshSum(i);}
 function edStep(i,v){
@@ -2147,7 +2213,7 @@ function recordSessionPR(k,id,name,w,r){
 }
 function findExDef(id){
   for(const p of Object.values(PROGRAM)){const e=p.exercises.find(x=>x.id===id);if(e)return e;}
-  return null;
+  return (gs().exDefs||{})[id]||null;
 }
 /* Séance d'un jour : celle enregistrée à l'époque, sinon celle qui recoupe le mieux les exercices faits */
 function inferProgram(k,ids){
@@ -2538,12 +2604,26 @@ function sessionNoteCardHtml(k){
 }
 const getSkipped=k=>{const d=gs();return (d.skipped&&d.skipped[k])||[];};
 const isSkipped=(k,id)=>getSkipped(k).includes(id);
+const baseId=e=>e.swappedFrom||e.id;
+/* Ordre du jour : remplacements appliqués, exercices reportés à la fin, exercices d'un même superset côte à côte */
 function orderedExercises(k,prog){
+  const base=dayExercises(k,prog);
   const ord=(gs().dayOrder||{})[k];
-  if(!ord||!ord.length)return prog.exercises;
-  const byId={};prog.exercises.forEach(e=>{byId[e.id]=e;});
-  const out=ord.map(id=>byId[id]).filter(Boolean);
-  prog.exercises.forEach(e=>{if(!out.includes(e))out.push(e);});
+  let list=base;
+  if(ord&&ord.length){
+    const byKey={};base.forEach(e=>{byKey[baseId(e)]=e;});
+    list=ord.map(id=>byKey[id]).filter(Boolean);
+    base.forEach(e=>{if(!list.includes(e))list.push(e);});
+  }
+  return groupSupersets(list);
+}
+function groupSupersets(list){
+  const out=[],used=new Set();
+  list.forEach(e=>{
+    if(used.has(e))return;
+    out.push(e);used.add(e);
+    if(e.superset)list.forEach(o=>{if(!used.has(o)&&o.superset===e.superset){out.push(o);used.add(o);}});
+  });
   return out;
 }
 function rerenderDay(k,scroll){
@@ -2570,10 +2650,11 @@ function skipExercise(k,id,on){
 }
 function postponeExercise(k,id){
   const {prog}=getEffectiveDayProgram(k);if(!prog)return;
-  const ord=orderedExercises(k,prog).map(e=>e.id);
-  if(ord[ord.length-1]===id){showToast("C'est déjà le dernier exercice");return;}
+  const list=orderedExercises(k,prog);
+  const cur=list.find(e=>e.id===id);if(!cur)return;
+  if(list[list.length-1].id===id){showToast("C'est déjà le dernier exercice");return;}
   const d=gs();if(!d.dayOrder)d.dayOrder={};
-  d.dayOrder[k]=ord.filter(x=>x!==id).concat(id);
+  d.dayOrder[k]=list.filter(e=>e.id!==id).map(baseId).concat(baseId(cur));
   ss(d);triggerSave();
   rerenderDay(k,true);
   showToast('Reporté à la fin de la séance');
@@ -2582,11 +2663,29 @@ function postponeExercise(k,id){
 /* ============================================================
    SEMAINE ISO · RUNNING · ALLURE · ROUTAGE PAR L'URL
    ============================================================ */
-const RUN_PLAN=[
-  {key:'mardi',   short:'Fractionné HIIT', name:'Mardi — Fractionné HIIT',   desc:'Intervalles haute intensité pour brûler max de calories.',    detail:'10min éco · 10-15× (30s sprint/30s récup) · 5min retour'},
-  {key:'jeudi',   short:'Tempo',           name:'Jeudi — Tempo',             desc:'Allure soutenue sur 5km pour développer ton seuil lactique.', detail:'5km continu, légèrement inconfortable mais constant'},
-  {key:'dimanche',short:'Sortie longue',   name:'Dimanche — Sortie Longue',  desc:'Endurance fondamentale Zone 2 pour brûler les graisses.',     detail:'45–60min très lent, conversation possible'}
-];
+function runForDay(dayName){const id=RUN_WEEKLY[dayName];return id&&RUNS[id]?Object.assign({id},RUNS[id]):null;}
+function runPlanList(){return DAYS_ORDER.map(d=>({day:d,run:runForDay(d)})).filter(x=>x.run);}
+const fmtKm=n=>String(Math.round(n*10)/10).replace('.',',');
+function parsePace(v){
+  const t=String(v==null?'':v).trim().replace(',','.');if(!t)return 0;
+  const m=t.match(/^(\d{1,2}):(\d{1,2})$/);
+  if(m)return (+m[1])*60+Math.min(59,+m[2]);
+  const n=parseFloat(t);return n>0&&n<30?Math.round(n*60):0;
+}
+/* Objectif de la sortie vs résultat saisi */
+function runGoalHtml(run,rl){
+  const parts=[];
+  if(run.targetDistance)parts.push(fmtKm(run.targetDistance)+' km');
+  if(run.targetDuration)parts.push(run.targetDuration+' min');
+  if(run.targetPace)parts.push(fmtPace(run.targetPace)+' /km');
+  if(!parts.length)return '';
+  const res=[],dist=parseFloat(String(rl.distance||'').replace(',','.')),dur=parseFloat(rl.duration),pace=runPaceSec(rl);
+  if(run.targetDistance&&dist>0)res.push(dist>=run.targetDistance?'distance atteinte':'−'+fmtKm(run.targetDistance-dist)+' km');
+  if(run.targetDuration&&dur>0)res.push(dur>=run.targetDuration?'durée atteinte':'−'+Math.round(run.targetDuration-dur)+' min');
+  if(run.targetPace&&pace>0){const df=pace-run.targetPace;res.push(df<=0?'allure tenue ('+(df<0?'−'+Math.abs(df)+' s/km':'pile')+')':'+'+df+' s/km');}
+  return `Objectif : <b>${parts.join(' · ')}</b>${res.length?` — ${res.join(' · ')}`:''}`;
+}
+
 /* Semaine du lundi au dimanche contenant aujourd'hui : { lundi:'AAAA-MM-JJ', … } */
 function weekDateKeys(){
   const t=new Date();t.setHours(0,0,0,0);
@@ -2604,28 +2703,36 @@ function paceHtml(rl){
   const p=runPaceSec(rl);
   return p?`Allure moyenne : <b>${fmtPace(p)}</b> /km`:'Allure moyenne : renseigne la durée et la distance';
 }
-function updateRunPaceUI(k){const el=document.getElementById('pace-'+k);if(el)el.innerHTML=paceHtml(getRunLog(k));}
+function updateRunPaceUI(k){
+  const el=document.getElementById('pace-'+k);if(el)el.innerHTML=paceHtml(getRunLog(k));
+  const g=document.getElementById('rgoal-'+k);
+  if(g){const run=runForDay(DAY_JS_MAP[new Date(k+'T12:00:00').getDay()]);g.innerHTML=run?runGoalHtml(run,getRunLog(k)):'';}
+}
 function fmtDuration(min){const m=Math.round(min);return m>=60?Math.floor(m/60)+'h'+String(m%60).padStart(2,'0'):m+' min';}
 
 function weekRunLineHtml(dayName,dateKey){
-  const rd=RUN_PLAN.find(r=>r.key===dayName);if(!rd)return '';
+  const run=runForDay(dayName);if(!run)return '';
   const rl=getRunLog(dateKey),pace=runPaceSec(rl);
   const stats=[rl.distance?rl.distance+' km':'',rl.duration?rl.duration+' min':'',pace?fmtPace(pace)+' /km':''].filter(Boolean).join(' · ');
-  return `<div class="wrun${rl.done?' done':''}" onclick="event.stopPropagation();openRun('${dateKey}')" role="button" tabindex="0">${ic(rl.done?'check':'pulse')}<span><b>${rd.short}</b>${rl.done?(stats?' · '+stats:' · faite'):' · à faire'}</span></div>`;
+  const tgt=[run.targetDistance?fmtKm(run.targetDistance)+' km':'',run.targetDuration?run.targetDuration+' min':'',run.targetPace?fmtPace(run.targetPace)+' /km':''].filter(Boolean).join(' · ');
+  return `<div class="wrun${rl.done?' done':''}" onclick="event.stopPropagation();openRun('${dateKey}')" role="button" tabindex="0">${ic(rl.done?'check':'pulse')}<span><b>${escA(run.name)}</b>${rl.done?(stats?' · '+stats:' · faite'):(tgt?' · '+tgt:' · à faire')}</span></div>`;
 }
 function weekCardioHtml(WK){
+  const plan=runPlanList();
+  if(!plan.length&&!WEEKLY_KM)return '';
   let done=0,km=0,min=0,paceDur=0,paceDist=0;
-  RUN_PLAN.forEach(rd=>{
-    const rl=getRunLog(WK[rd.key]);
+  plan.forEach(({day})=>{
+    const rl=getRunLog(WK[day]);
     if(rl.done)done++;
     const dur=parseFloat(rl.duration)||0,dist=parseFloat(String(rl.distance||'').replace(',','.'))||0;
     km+=dist;min+=dur;
     if(dur>0&&dist>0){paceDur+=dur;paceDist+=dist;}
   });
   const pace=paceDist>0?fmtPace(paceDur*60/paceDist):'—';
-  const cells=[['Sorties',done+'/'+RUN_PLAN.length],['Distance',km>0?(Math.round(km*10)/10).toLocaleString('fr-FR')+' km':'—'],['Durée',min>0?fmtDuration(min):'—'],['Allure /km',pace]];
+  const cells=[['Sorties',done+'/'+plan.length],['Distance',km>0?fmtKm(km)+' km':'—'],['Durée',min>0?fmtDuration(min):'—'],['Allure /km',pace]];
+  const kmBar=WEEKLY_KM>0?`<div class="wk-km"><div class="goal-meta"><span>Objectif distance</span><span>${fmtKm(km)} / ${fmtKm(WEEKLY_KM)} km</span></div><div class="goal-bar"><i style="width:${Math.min(100,Math.round(km/WEEKLY_KM*100))}%"></i></div></div>`:'';
   return `<div class="card wk-cardio"><div class="stitle">Cardio de la semaine</div>
-    <div class="sum-grid wk-grid">${cells.map(([l,v])=>`<div class="sum-cell"><div class="sum-v">${v}</div><div class="sum-l">${l}</div></div>`).join('')}</div></div>`;
+    <div class="sum-grid wk-grid">${cells.map(([l,v])=>`<div class="sum-cell"><div class="sum-v">${v}</div><div class="sum-l">${l}</div></div>`).join('')}</div>${kmBar}</div>`;
 }
 function openRun(k){
   switchTab('cardio');
@@ -2669,8 +2776,8 @@ function reminderLabels(){
   DAY_JS_MAP.forEach((name,i)=>{
     const parts=[],p=PROGRAM[WEEKLY_SUGGESTIONS[name]];
     if(p&&p.type!=='rest')parts.push(p.fullName);
-    const run=RUN_PLAN.find(r=>r.key===name);
-    if(run)parts.push(run.short);
+    const run=runForDay(name);
+    if(run)parts.push(run.name);
     if(parts.length)out[i]=parts.join(' + ');
   });
   return out;
@@ -2775,6 +2882,450 @@ async function updateReminderStatus(){
   el.textContent=bg
     ?'Rappel actif, même appli fermée (selon la gestion de la batterie de ton appareil).'
     :"Ton navigateur n'autorise pas l'envoi appli fermée : le rappel arrive tant que l'appli est ouverte, même en arrière-plan.";
+}
+
+/* ============================================================
+   SUPERSETS · EXERCICES DE REMPLACEMENT
+   ============================================================ */
+function dayExercises(k,prog){
+  if(!prog)return [];
+  const sw=(gs().swaps||{})[k];
+  if(!sw)return prog.exercises;
+  return prog.exercises.map(e=>sw[e.id]||e);
+}
+/* Exercice du même superset à enchaîner juste après (même numéro de série), ou null quand il faut se reposer */
+function supersetNext(k,exId,idx){
+  const {prog}=getEffectiveDayProgram(k);if(!prog)return null;
+  const list=orderedExercises(k,prog).filter(e=>!isSkipped(k,e.id));
+  const ex=list.find(e=>e.id===exId);
+  if(!ex||!ex.superset)return null;
+  const group=list.filter(e=>e.superset===ex.superset);
+  if(group.length<2)return null;
+  return group.slice(group.indexOf(ex)+1).find(e=>idx<e.sets&&!getSet(k,e.id,idx).done)||null;
+}
+function supersetRest(k,exId,fallback){
+  const {prog}=getEffectiveDayProgram(k);if(!prog)return fallback||90;
+  const list=orderedExercises(k,prog).filter(e=>!isSkipped(k,e.id));
+  const ex=list.find(e=>e.id===exId);
+  if(!ex||!ex.superset)return fallback||90;
+  return Math.max(...list.filter(e=>e.superset===ex.superset).map(e=>e.restSec||90));
+}
+/* Candidats : exercices connus qui travaillent le même muscle et ne sont pas déjà dans la séance du jour */
+function swapCandidates(ex,k){
+  const {prog}=getEffectiveDayProgram(k);
+  const present=new Set(dayExercises(k,prog).map(e=>e.id));
+  const pool={};
+  const d=gs();
+  Object.values(d.exDefs||{}).forEach(e=>{pool[e.id]=e;});
+  Object.values(PROGRAM).forEach(p=>p.exercises.forEach(e=>{pool[e.id]=e;}));
+  const main=(ex.muscles||[])[0];
+  return Object.values(pool).filter(c=>!present.has(c.id)&&c.type!=='echauffement'&&(c.muscles||[]).some(m=>(ex.muscles||[]).includes(m))).map(c=>{
+    let score=0;
+    if((c.muscles||[])[0]===main)score+=3;
+    if(c.type===ex.type)score+=1;
+    if(!!c.isTime===!!ex.isTime)score+=1;
+    return {c,score};
+  }).sort((a,b)=>b.score-a.score||a.c.name.localeCompare(b.c.name)).slice(0,8).map(x=>x.c);
+}
+function buildSwapDef(orig,cand,k){
+  const base=orig.swappedFrom||orig.id;
+  const timeMismatch=!!cand.isTime!==!!orig.isTime;
+  const def=Object.assign({},orig,{
+    id:cand.id,name:cand.name,type:cand.type||orig.type,muscles:(cand.muscles&&cand.muscles.length)?cand.muscles.slice():(orig.muscles||[]).slice(),
+    restSec:cand.restSec||orig.restSec,swappedFrom:base,swappedName:orig.swappedName||orig.name
+  });
+  if(cand.isTime)def.isTime=true;else delete def.isTime;
+  if(timeMismatch){def.repsLabel=cand.repsLabel||(cand.isTime?'30-60 sec':'8-12 reps');def.defaultReps=cand.defaultReps||(cand.isTime?45:10);}
+  delete def.step;if(cand.step>0)def.step=cand.step;
+  return def;
+}
+function showSwapModal(k,exId){
+  closeModal();
+  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
+  const ex=dayExercises(k,prog).find(e=>e.id===exId);if(!ex)return;
+  const cands=swapCandidates(ex,k);
+  const list=cands.length?cands.map(c=>`<button class="swap-item" onclick="doSwap('${k}','${exId}','${c.id}')"><b>${escA(c.name)}</b><span>${escA(({compound:'Compound',isolation:'Isolation',echauffement:'Échauffement'})[c.type]||'')}${(c.muscles||[]).length?' · '+escA(c.muscles.join(', ')):''}</span></button>`).join(''):`<div class="ed-hint" style="margin:6px 0 12px">Aucune suggestion : indique l'exercice que tu fais à la place.</div>`;
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal-overlay" id="swapModal" onclick="if(event.target.id==='swapModal')closeModal()">
+    <div class="modal-box">
+      <div class="modal-hdr"><div class="modal-title">Remplacer l'exercice</div><button class="drawer-close" onclick="closeModal()" aria-label="Fermer">${ic('close')}</button></div>
+      <div class="sum-sub" style="margin-top:6px">${escA(ex.name)} · même volume (${ex.sets} × ${escA(ex.repsLabel)}), pour aujourd'hui seulement.</div>
+      <div class="swap-list">${list}</div>
+      <span class="set-lbl ed-lbl" style="margin-top:14px">AUTRE EXERCICE</span>
+      <div class="swap-free"><input class="ex-note-inp" id="swapFree" list="swapNames" maxlength="60" placeholder="Nom de l'exercice" autocomplete="off">
+      <datalist id="swapNames">${knownExercises().map(e=>`<option value="${escA(e.name)}"></option>`).join('')}</datalist>
+      <button class="btn-calc" onclick="doSwapFree('${k}','${exId}')">Utiliser</button></div>
+    </div></div>`);
+}
+function applySwap(k,orig,def){
+  const d=gs();
+  if(!d.swaps)d.swaps={};
+  if(!d.swaps[k])d.swaps[k]={};
+  d.swaps[k][def.swappedFrom]=def;
+  d.exNames=Object.assign({},d.exNames||{});d.exNames[def.id]=def.name;
+  d.exDefs=Object.assign({},d.exDefs||{});d.exDefs[def.id]={id:def.id,name:def.name,type:def.type,muscles:def.muscles,isTime:!!def.isTime};
+  if(d.skipped&&d.skipped[k])d.skipped[k]=d.skipped[k].filter(x=>x!==orig.id);
+  ss(d);triggerSave();
+  closeModal();
+  rerenderDay(k,true);
+  showToast('Remplacé par '+def.name);
+}
+function doSwap(k,exId,candId){
+  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
+  const ex=dayExercises(k,prog).find(e=>e.id===exId);
+  const cand=swapCandidates(ex,k).find(c=>c.id===candId);
+  if(!ex||!cand)return;
+  applySwap(k,ex,buildSwapDef(ex,cand,k));
+}
+function doSwapFree(k,exId){
+  const inp=document.getElementById('swapFree');
+  const name=cleanName(inp?inp.value:'');
+  if(!name){showToast("Indique le nom de l'exercice");return;}
+  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
+  const ex=dayExercises(k,prog).find(e=>e.id===exId);if(!ex)return;
+  const known=knownExercises().find(e=>normName(e.name)===normName(name));
+  const id=known?known.id:'x_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  const defs=(gs().exDefs||{})[id];
+  applySwap(k,ex,buildSwapDef(ex,Object.assign({muscles:ex.muscles,type:ex.type},defs||{},{id,name:known?known.name:name}),k));
+}
+function revertSwap(k,exId){
+  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
+  const ex=dayExercises(k,prog).find(e=>e.id===exId);if(!ex||!ex.swappedFrom)return;
+  for(let i=0;i<ex.sets;i++)if(getSet(k,exId,i).done){showToast('Impossible : des séries sont déjà validées');return;}
+  const d=gs();
+  if(d.swaps&&d.swaps[k]){delete d.swaps[k][ex.swappedFrom];if(!Object.keys(d.swaps[k]).length)delete d.swaps[k];}
+  if(d.workouts&&d.workouts[k])delete d.workouts[k][exId];
+  ss(d);triggerSave();
+  rerenderDay(k,true);
+  showToast('Exercice d\'origine rétabli');
+}
+
+/* ============================================================
+   OBJECTIFS DE FORCE ET DE POIDS
+   goals = [{ id, type:'lift'|'weight', exId?, target, start, startDate, achievedAt? }]
+   ============================================================ */
+const getGoals=()=>(gs().goals||[]).filter(g=>g&&g.id);
+function saveGoals(list){const d=gs();d.goals=list;ss(d);triggerSave();}
+const dayNum=iso=>Math.round(new Date(iso+'T12:00:00').getTime()/86400000);
+function linSlope(pts){
+  const n=pts.length;if(n<2)return 0;
+  const mx=pts.reduce((a,p)=>a+p.x,0)/n,my=pts.reduce((a,p)=>a+p.y,0)/n;
+  let num=0,den=0;pts.forEach(p=>{num+=(p.x-mx)*(p.y-my);den+=(p.x-mx)*(p.x-mx);});
+  return den?num/den:0;
+}
+/* charge max par séance pour un exercice : [{date,w}] */
+function liftSeries(exId){
+  const d=gs(),pts=[];
+  Object.keys(d.workouts||{}).sort().forEach(k=>{
+    let m=0;((d.workouts[k]&&d.workouts[k][exId])||[]).forEach(x=>{if(x&&x.done){const w=parseFloat(x.weight)||0;if(w>m)m=w;}});
+    if(m>0)pts.push({date:k,w:m});
+  });
+  return pts;
+}
+function goalCurrent(g){
+  if(g.type==='weight'){const log=getWeightLog();return log.length?log[log.length-1].kg:null;}
+  const pr=getPRs()[g.exId];
+  return Math.max(pr?pr.weight:0,...liftSeries(g.exId).map(p=>p.w),0);
+}
+function goalProgress(g){
+  const cur=goalCurrent(g);
+  if(cur==null)return{cur:null,pct:0,done:false};
+  const start=g.start,tgt=g.target;
+  if(g.type==='weight'){
+    const dir=tgt<start?-1:1,done=dir<0?cur<=tgt:cur>=tgt,span=Math.abs(tgt-start)||1;
+    return{cur,dir,done,pct:done?100:Math.max(0,Math.min(100,(dir<0?start-cur:cur-start)/span*100))};
+  }
+  const done=cur>=tgt,span=tgt-start;
+  return{cur,done,pct:done?100:(span>0?Math.max(0,Math.min(100,(cur-start)/span*100)):0)};
+}
+/* estimation de la date d'arrivée par régression linéaire sur les mesures récentes */
+function goalEta(g,pr){
+  if(pr.done)return{kind:'done'};
+  const today=dayNum(todayKey());
+  let pts=[],minSpan=14;
+  if(g.type==='weight'){
+    pts=getWeightLog().filter(e=>dayNum(e.date)>=today-90).map(e=>({x:dayNum(e.date),y:e.kg}));minSpan=7;
+  }else{
+    let run=0;
+    pts=liftSeries(g.exId).filter(p=>dayNum(p.date)>=today-120).map(p=>{run=Math.max(run,p.w);return{x:dayNum(p.date),y:run};});
+  }
+  if(pts.length<(g.type==='weight'?2:3)||pts[pts.length-1].x-pts[0].x<minSpan)return{kind:'nodata'};
+  const slope=linSlope(pts);
+  if(g.type==='weight'){
+    if(pr.dir<0?slope>=-0.005:slope<=0.005)return{kind:slope===0?'stalled':'wrong'};
+  }else if(slope<=0.01)return{kind:'stalled'};
+  const days=(g.target-pr.cur)/slope;
+  if(!(days>0))return{kind:'stalled'};
+  if(days>730)return{kind:'far'};
+  const dt=new Date();dt.setHours(12,0,0,0);dt.setDate(dt.getDate()+Math.ceil(days));
+  return{kind:'date',date:dateToKey(dt),days:Math.ceil(days),rate:slope*7};
+}
+function etaText(g,pr,eta){
+  const dfmt=k=>new Date(k+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+  switch(eta.kind){
+    case 'done':return 'Atteint le '+dfmt(g.achievedAt||todayKey());
+    case 'date':{
+      const when=eta.days<14?`dans ${eta.days} j`:`dans ${Math.round(eta.days/7)} sem.`;
+      return `≈ ${dfmt(eta.date)} · ${when} · ${eta.rate>0?'+':'−'}${fmtKg(Math.abs(eta.rate))} kg/sem.`;
+    }
+    case 'far':return 'Au rythme actuel : plus de 2 ans';
+    case 'stalled':return 'Progression à l\'arrêt : pas d\'estimation';
+    case 'wrong':return 'Tendance opposée à l\'objectif';
+    default:return g.type==='weight'?'Ajoute des pesées pour estimer la date':'Pas assez de séances pour estimer la date';
+  }
+}
+function goalName(g){return g.type==='weight'?'Poids de corps':findExName(g.exId);}
+function goalsCardHtml(){
+  const goals=getGoals();
+  const rows=goals.map(g=>{
+    const pr=goalProgress(g),eta=goalEta(g,pr);
+    const cur=pr.cur==null?'—':fmtKg(pr.cur);
+    return `<div class="goal-row${pr.done?' done':''}" onclick="openGoalModal('${g.id}')" role="button" tabindex="0">
+      <div class="goal-top"><span class="goal-name">${pr.done?ic('check'):''}${escA(goalName(g))}</span><span class="goal-val">${cur} <i>→</i> ${fmtKg(g.target)} kg</span></div>
+      <div class="goal-bar"><i style="width:${Math.round(pr.pct)}%"></i></div>
+      <div class="goal-meta"><span>${Math.round(pr.pct)} %</span><span>${escA(etaText(g,pr,eta))}</span></div></div>`;
+  }).join('');
+  return `<div class="stitle">Objectifs</div>
+    ${rows||`<div class="empty" style="padding:10px 0 16px">Fixe-toi une cible (« squat 100 kg », poids de corps…)<br>et suis ta progression jusqu'à l'estimation d'arrivée.</div>`}
+    <button class="btn-calc goal-add" onclick="openGoalModal()">${ic('plus')} Ajouter un objectif</button>`;
+}
+function refreshGoalsCard(){const el=document.getElementById('goalsCard');if(el)el.innerHTML=goalsCardHtml();}
+function checkGoalsAchieved(){
+  const goals=getGoals();let changed=false;
+  goals.forEach(g=>{
+    if(g.achievedAt)return;
+    if(goalProgress(g).done){g.achievedAt=todayKey();changed=true;showToast('Objectif atteint : '+goalName(g)+' '+fmtKg(g.target)+' kg !');}
+  });
+  if(changed){saveGoals(goals);refreshGoalsCard();}
+}
+let _goal={id:null,type:'lift',exId:'',target:''},_goalDel=false;
+function openGoalModal(id){
+  closeModal();
+  const g=id?getGoals().find(x=>x.id===id):null;
+  _goal=g?{id:g.id,type:g.type,exId:g.exId||'',target:String(g.target)}:{id:null,type:'lift',exId:'',target:''};
+  _goalDel=false;
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal-overlay" id="goalModal" onclick="if(event.target.id==='goalModal')closeModal()"><div class="modal-box" id="goalBox"></div></div>`);
+  renderGoalModal();
+}
+function renderGoalModal(){
+  const box=document.getElementById('goalBox');if(!box)return;
+  const edit=!!_goal.id;
+  const exOpts=getAllExercises().map(e=>`<option value="${e.id}"${e.id===_goal.exId?' selected':''}>${escA(e.name)}</option>`).join('');
+  const typeChips=edit?'':`<div class="ed-chips"><button class="ed-chip${_goal.type==='lift'?' on':''}" onclick="goalType('lift')">Exercice</button><button class="ed-chip${_goal.type==='weight'?' on':''}" onclick="goalType('weight')">Poids de corps</button></div>`;
+  let cur='';
+  if(_goal.type==='weight'){const c=goalCurrent({type:'weight'});cur=c!=null?`Poids actuel : <b>${fmtKg(c)} kg</b>`:'Aucune pesée enregistrée : ajoute-en une dans Stats.';}
+  else if(_goal.exId){cur=`Record actuel : <b>${fmtKg(goalCurrent({type:'lift',exId:_goal.exId}))} kg</b>`;}
+  box.innerHTML=`<div class="modal-hdr"><div class="modal-title">${edit?'Modifier l\'objectif':'Nouvel objectif'}</div><button class="drawer-close" onclick="closeModal()" aria-label="Fermer">${ic('close')}</button></div>
+    ${typeChips}
+    ${_goal.type==='lift'?`<span class="set-lbl ed-lbl">EXERCICE</span><select class="si goal-sel" ${edit?'disabled':''} onchange="goalEx(this.value)"><option value="">Choisir…</option>${exOpts}</select>`:''}
+    <div class="sum-sub" id="goalCur" style="margin:10px 0">${cur}</div>
+    <span class="set-lbl ed-lbl">CIBLE (KG)</span>
+    <input class="si goal-inp" id="goalTarget" type="number" inputmode="decimal" step="0.5" min="1" value="${escA(_goal.target)}" placeholder="100" oninput="_goal.target=this.value">
+    <div style="display:flex;gap:10px;margin-top:20px">
+      ${edit?`<button class="btn-danger" style="flex:1" onclick="goalDelete()">${_goalDel?'Confirmer':'Supprimer'}</button>`:`<button class="run-done-btn" style="flex:1;margin-top:0;background:none;border:1.5px solid var(--border);color:var(--muted)" onclick="closeModal()">Annuler</button>`}
+      <button class="run-done-btn done" style="flex:1;margin-top:0" onclick="goalSave()">Enregistrer</button>
+    </div>`;
+}
+function goalType(t){_goal.type=t;renderGoalModal();}
+function goalEx(v){_goal.exId=v;const c=document.getElementById('goalCur');if(c)c.innerHTML=v?`Record actuel : <b>${fmtKg(goalCurrent({type:'lift',exId:v}))} kg</b>`:'';}
+function goalSave(){
+  const target=Math.round(parseFloat(String(_goal.target).replace(',','.'))*10)/10;
+  if(!(target>0&&target<=1000)){showToast('Cible invalide');return;}
+  const goals=getGoals();
+  if(_goal.id){
+    const g=goals.find(x=>x.id===_goal.id);
+    if(g){g.target=target;delete g.achievedAt;if(goalProgress(g).done)g.achievedAt=todayKey();}
+  }else{
+    if(_goal.type==='lift'&&!_goal.exId){showToast('Choisis un exercice');return;}
+    if(goals.some(g=>!g.achievedAt&&g.type===_goal.type&&(g.type==='weight'||g.exId===_goal.exId))){showToast('Un objectif existe déjà : modifie-le');return;}
+    const g={id:'g_'+Date.now().toString(36),type:_goal.type,exId:_goal.type==='lift'?_goal.exId:undefined,target,startDate:todayKey()};
+    const cur=goalCurrent(g);
+    if(g.type==='weight'&&cur==null){showToast("Ajoute d'abord une pesée");return;}
+    g.start=cur||0;
+    if(g.type==='lift'&&cur>=target){showToast('Déjà atteint : choisis une cible plus haute');return;}
+    if(g.type==='weight'&&cur===target){showToast('Tu y es déjà !');return;}
+    goals.push(g);
+  }
+  saveGoals(goals);closeModal();refreshGoalsCard();showToast('Objectif enregistré');
+}
+function goalDelete(){
+  if(!_goalDel){_goalDel=true;renderGoalModal();return;}
+  saveGoals(getGoals().filter(g=>g.id!==_goal.id));
+  closeModal();refreshGoalsCard();showToast('Objectif supprimé');
+}
+
+/* ============================================================
+   VOLUME HEBDOMADAIRE PAR MUSCLE (séries de travail / semaine)
+   Le 1er muscle d'un exercice compte une série entière, les suivants une demi-série ; l'échauffement n'est pas compté.
+   « Prévu » = séries restantes du programme jusqu'à dimanche.
+   ============================================================ */
+const VOL_DEFAULT=[10,20];
+const fmtSets=n=>(Math.round(n*2)/2).toLocaleString('fr-FR',{maximumFractionDigits:1});
+function getVolTargets(){
+  const t=(gs().prefs||{}).volTargets||{},out={};
+  MUSCLE_KEYS.forEach(k=>{const v=t[k];out[k]=(Array.isArray(v)&&v.length===2&&v[0]>=0&&v[1]>=v[0])?[+v[0],+v[1]]:VOL_DEFAULT.slice();});
+  return out;
+}
+function weekMonday(off){
+  const t=new Date();t.setHours(0,0,0,0);
+  t.setDate(t.getDate()-((t.getDay()+6)%7)+off*7);
+  return t;
+}
+function weekVolume(off){
+  const mon=weekMonday(off),today=todayKey(),d=gs();
+  const actual={},planned={};MUSCLE_KEYS.forEach(k=>{actual[k]=0;planned[k]=0;});
+  const add=(obj,def,n)=>{
+    if(!def||def.type==='echauffement'||n<=0)return;
+    (def.muscles||[]).forEach((m,i)=>{if(MUSCLE_KEYS.includes(m))obj[m]+=n*(i===0?1:0.5);});
+  };
+  for(let i=0;i<7;i++){
+    const dt=new Date(mon);dt.setDate(mon.getDate()+i);
+    const k=dateToKey(dt),day=(d.workouts&&d.workouts[k])||{};
+    Object.keys(day).forEach(id=>add(actual,findExDef(id),(day[id]||[]).filter(x=>x&&x.done).length));
+    if(off===0&&k>=today){
+      const {prog}=getEffectiveDayProgram(k);
+      if(prog&&prog.type!=='rest')dayExercises(k,prog).forEach(ex=>{
+        if(isSkipped(k,ex.id))return;
+        let rem=0;for(let n=0;n<ex.sets;n++)if(!getSet(k,ex.id,n).done)rem++;
+        add(planned,ex,rem);
+      });
+    }
+  }
+  return{actual,planned,mon};
+}
+let _volOff=0;
+function volumeCardHtml(){
+  const {actual,planned,mon}=weekVolume(_volOff),T=getVolTargets();
+  const proj=k=>actual[k]+planned[k];
+  const scale=Math.max(...MUSCLE_KEYS.map(k=>Math.max(T[k][1]*1.25,proj(k))),1);
+  const pc=v=>Math.min(100,v/scale*100);
+  const rows=MUSCLE_KEYS.map((k,i)=>{
+    const [lo,hi]=T[k],a=actual[k],pl=planned[k];
+    const cls=a<lo?'under':(a>hi?'over':'in');
+    return `<div class="vol-row"><span class="vol-name">${MUSCLE_LABELS[i]}</span>
+      <div class="vol-bar"><div class="vol-zone" style="left:${pc(lo)}%;width:${pc(hi)-pc(lo)}%"></div><div class="vol-fill ${cls}" style="width:${pc(a)}%"></div>${pl>0?`<div class="vol-plan" style="left:${pc(a)}%;width:${Math.min(pc(a+pl),100)-pc(a)}%"></div>`:''}</div>
+      <span class="vol-val"><b>${fmtSets(a)}</b>${pl>0?`<em>+${fmtSets(pl)}</em>`:''}<small>/ ${lo}–${hi}</small></span></div>`;
+  }).join('');
+  let note;
+  if(_volOff===0){
+    const low=MUSCLE_KEYS.map((k,i)=>({k,n:MUSCLE_LABELS[i]})).filter(x=>proj(x.k)<T[x.k][0]);
+    note=low.length?`Avec les séances prévues, <b>${low.map(x=>x.n).join(', ')}</b> resteront sous l'objectif minimum.`:'Avec les séances prévues, tous les muscles atteindront leur objectif minimum.';
+  }else{
+    const ok=MUSCLE_KEYS.filter(k=>actual[k]>=T[k][0]&&actual[k]<=T[k][1]).length;
+    note=`${ok} muscle${ok>1?'s':''} sur 7 dans la zone cible cette semaine-là.`;
+  }
+  const title=_volOff===0?'Cette semaine':'Semaine du '+fmtDateShort(dateToKey(mon));
+  return `<div class="vol-head"><div class="stitle" style="margin:0">Volume hebdo</div>
+      <div class="vol-nav"><button onclick="volWeek(-1)" aria-label="Semaine précédente">${ic('back')}</button><span>${title}</span><button onclick="volWeek(1)" aria-label="Semaine suivante" ${_volOff>=0?'disabled':''}>${ic('chev')}</button></div></div>
+    <div class="vol-rows">${rows}</div>
+    <div class="vol-note">${note}</div>
+    <div class="vol-legend"><span class="vol-zone-key"></span> zone cible (séries / semaine) · <span class="vol-plan-key"></span> prévu au programme
+      <button class="vol-edit" onclick="openVolModal()">Régler les objectifs</button></div>`;
+}
+function refreshVolumeCard(){const el=document.getElementById('volumeCard');if(el)el.innerHTML=volumeCardHtml();}
+function volWeek(dir){_volOff=Math.min(0,Math.max(-26,_volOff+dir));refreshVolumeCard();}
+function openVolModal(){
+  closeModal();
+  const T=getVolTargets();
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal-overlay" id="volModal" onclick="if(event.target.id==='volModal')closeModal()"><div class="modal-box">
+    <div class="modal-hdr"><div class="modal-title">Objectifs de volume</div><button class="drawer-close" onclick="closeModal()" aria-label="Fermer">${ic('close')}</button></div>
+    <div class="sum-sub" style="margin-top:6px">Séries de travail par semaine et par muscle (10 à 20 est une fourchette courante pour progresser).</div>
+    <div class="vol-edit-rows">${MUSCLE_KEYS.map((k,i)=>`<div class="vol-edit-row"><span>${MUSCLE_LABELS[i]}</span>
+      <input class="si" id="vmin-${k}" type="number" inputmode="numeric" min="0" max="60" value="${T[k][0]}" aria-label="${MUSCLE_LABELS[i]} minimum"><em>à</em>
+      <input class="si" id="vmax-${k}" type="number" inputmode="numeric" min="0" max="80" value="${T[k][1]}" aria-label="${MUSCLE_LABELS[i]} maximum"></div>`).join('')}</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="run-done-btn" style="flex:1;margin-top:0;background:none;border:1.5px solid var(--border);color:var(--muted)" onclick="resetVolTargets()">Par défaut</button>
+      <button class="run-done-btn done" style="flex:1;margin-top:0" onclick="saveVolTargets()">Enregistrer</button>
+    </div></div></div>`);
+}
+function saveVolTargets(){
+  const t={};
+  for(const k of MUSCLE_KEYS){
+    const lo=parseInt(document.getElementById('vmin-'+k).value),hi=parseInt(document.getElementById('vmax-'+k).value);
+    if(!(lo>=0&&hi>=lo)){showToast('Minimum ≤ maximum pour chaque muscle');return;}
+    t[k]=[lo,hi];
+  }
+  const d=gs();d.prefs=Object.assign({},d.prefs||{});d.prefs.volTargets=t;ss(d);triggerSave();
+  closeModal();refreshVolumeCard();showToast('Objectifs de volume enregistrés');
+}
+function resetVolTargets(){
+  const d=gs();d.prefs=Object.assign({},d.prefs||{});delete d.prefs.volTargets;ss(d);
+  closeModal();refreshVolumeCard();showToast('Objectifs par défaut rétablis');
+}
+
+/* ---------- Éditeur : sorties running ---------- */
+function edRunSectionHtml(){
+  const cfg=_progCfg;
+  const opts=sel=>`<option value="">Aucune</option>`+cfg.runOrder.map(o=>`<option value="${o}"${o===sel?' selected':''}>${escA(cfg.runs[o].name)}</option>`).join('');
+  const days=DAYS_ORDER.map(d=>`<div class="ed-day"><span class="ed-day-n">${DAY_LABELS[d]}</span><select class="si ed-sel" aria-label="Sortie du ${DAY_LABELS[d]}" onchange="edRunSetDay('${d}',this.value)">${opts(cfg.runWeekly[d])}</select></div>`).join('');
+  const list=cfg.runOrder.map(k=>{
+    const r=cfg.runs[k];
+    const tg=[r.targetDistance?fmtKm(r.targetDistance)+' km':'',r.targetDuration?r.targetDuration+' min':'',r.targetPace?fmtPace(r.targetPace)+' /km':''].filter(Boolean).join(' · ');
+    return `<div class="prog-pick-item ed-prog" onclick="edOpenRun('${k}')"><span class="prog-pick-icon" style="--c:var(--c-blue)"></span>
+      <div class="prog-pick-info"><div class="prog-pick-name">${escA(r.name)}</div><div class="prog-pick-meta">${tg||'Sans objectif'}</div></div>${ic('chev')}</div>`;
+  }).join('');
+  return `<div class="stitle" style="margin-top:22px">Course à pied</div>
+    <div class="ed-hint">Choisis les jours de sortie (en plus de la salle) et personnalise chaque type de sortie.</div>
+    <div class="card ed-days" style="margin-top:10px">${days}</div>
+    <div class="card ed-card"><span class="set-lbl ed-lbl">OBJECTIF DE DISTANCE PAR SEMAINE (KM, OPTIONNEL)</span>
+      <input class="si" type="number" inputmode="decimal" min="0" max="500" step="0.5" value="${cfg.weeklyKm||''}" placeholder="ex. 20" onchange="edWeeklyKm(this.value)" aria-label="Objectif de distance hebdomadaire"></div>
+    <div class="stitle">Types de sorties</div>
+    <div class="ed-list">${list||'<div class="empty">Aucun type de sortie.</div>'}</div>
+    <button class="btn-calc ed-add" onclick="edNewRun()">${ic('plus')} Nouvelle sortie</button>`;
+}
+function edRunSetDay(d,id){_progCfg.runWeekly[d]=_progCfg.runs[id]?id:'';edSave();}
+function edWeeklyKm(v){_progCfg.weeklyKm=numIn(v,0,500);edSave();}
+function edNewRun(){
+  const key='r_'+Date.now().toString(36);
+  _progCfg.runs[key]={name:'Nouvelle sortie',desc:'',detail:'',targetDistance:0,targetDuration:0,targetPace:0};
+  _progCfg.runOrder.push(key);
+  edSave();edOpenRun(key);
+  const inp=document.getElementById('edRunName');if(inp){inp.focus();inp.select();}
+}
+function edOpenRun(k){
+  if(!_progCfg.runs[k])return;
+  _ed.view='run';_ed.runKey=k;edRender();
+  const body=document.getElementById('edBody');if(body)body.scrollTop=0;
+}
+function edRunHtml(){
+  const r=_progCfg.runs[_ed.runKey];
+  return `<div class="card ed-card">
+      <span class="set-lbl ed-lbl">NOM DE LA SORTIE</span>
+      <input class="ex-note-inp" id="edRunName" type="text" maxlength="40" value="${escA(r.name)}" onchange="edRunField('name',this.value)" autocomplete="off">
+      <span class="set-lbl ed-lbl">DESCRIPTION</span>
+      <input class="ex-note-inp" type="text" maxlength="240" value="${escA(r.desc)}" placeholder="But de la sortie" onchange="edRunField('desc',this.value)">
+      <span class="set-lbl ed-lbl">DÉROULÉ</span>
+      <input class="ex-note-inp" type="text" maxlength="240" value="${escA(r.detail)}" placeholder="ex. 10 min échauffement · 5 × 1 km · retour au calme" onchange="edRunField('detail',this.value)">
+      <span class="set-lbl ed-lbl">OBJECTIFS (OPTIONNELS)</span>
+      <div class="ed-grid">
+        <div class="input-col"><span class="set-lbl">DISTANCE (KM)</span><input class="si" type="number" inputmode="decimal" step="0.1" min="0" value="${r.targetDistance||''}" placeholder="—" onchange="edRunField('targetDistance',this.value)"></div>
+        <div class="input-col"><span class="set-lbl">DURÉE (MIN)</span><input class="si" type="number" inputmode="numeric" min="0" value="${r.targetDuration||''}" placeholder="—" onchange="edRunField('targetDuration',this.value)"></div>
+        <div class="input-col"><span class="set-lbl">ALLURE /KM</span><input class="si" type="text" inputmode="numeric" value="${r.targetPace?fmtPace(r.targetPace):''}" placeholder="5:30" onchange="edRunField('targetPace',this.value)"></div>
+      </div>
+    </div>
+    <div class="ed-hint">Les objectifs s'affichent sur la carte de la sortie, dans le planning, et sont comparés à ton résultat.</div>
+    <button class="btn-danger ed-delprog" onclick="edConfirmDelRun()">Supprimer cette sortie</button>`;
+}
+function edRunField(f,v){
+  const r=_progCfg.runs[_ed.runKey];if(!r)return;
+  if(f==='name'){
+    const n=cleanName(v);
+    if(!n){showToast('Le nom ne peut pas être vide');const i=document.getElementById('edRunName');if(i)i.value=r.name;return;}
+    r.name=n;const t=document.getElementById('edTitle');if(t)t.textContent=n;
+  }else if(f==='desc'||f==='detail')r[f]=txtClean(v,240);
+  else if(f==='targetPace'){r.targetPace=numIn(parsePace(v),0,1800);edSave();edRender();return;}
+  else r[f]=numIn(v,0,f==='targetDistance'?200:600);
+  edSave();
+}
+function edConfirmDelRun(){
+  edConfirm('Supprimer la sortie ?',`« ${escA(_progCfg.runs[_ed.runKey].name)} » sera retirée de ton planning. Tes sorties déjà enregistrées sont conservées.`,'Supprimer','edDoDelRun');
+}
+function edDoDelRun(){
+  const k=_ed.runKey;
+  delete _progCfg.runs[k];
+  _progCfg.runOrder=_progCfg.runOrder.filter(x=>x!==k);
+  DAYS_ORDER.forEach(d=>{if(_progCfg.runWeekly[d]===k)_progCfg.runWeekly[d]='';});
+  edSave();closeModal();
+  _ed.view='home';_ed.runKey=null;edRender();showToast('Sortie supprimée');
 }
 
 const TABS=['today','week','stats','cardio','profile'];
