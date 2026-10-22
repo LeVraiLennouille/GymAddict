@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'ga-v2.8.4';
+const CACHE_VERSION = 'ga-v2.8.5';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_FONTS   = `${CACHE_VERSION}-fonts`;
 const CACHE_CONFIG  = 'ga-config'; /* non versionné : config des rappels, lue ici et écrite par la page */
@@ -49,11 +49,6 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(cacheFirst(event.request, CACHE_FONTS));
-    return;
-  }
-
-  if (url.hostname === 'cdnjs.cloudflare.com') {
     event.respondWith(cacheFirst(event.request, CACHE_FONTS));
     return;
   }
