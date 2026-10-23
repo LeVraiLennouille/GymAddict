@@ -22,6 +22,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <!-- Noyau (chargé au démarrage, dans l'ordre) -->
+  <script src="js/loader.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/core.js" defer></script>
+  <script src="js/stubs.js" defer></script>
+  <script src="js/app.js" defer></script>
+  <!-- Modules chargés à la demande : simple préchargement à basse priorité, sans exécution -->
+  <link rel="prefetch" as="script" href="js/stats.js">
+  <link rel="prefetch" as="script" href="js/week.js">
+  <link rel="prefetch" as="script" href="js/cardio.js">
+  <link rel="prefetch" as="script" href="js/profile.js">
+  <link rel="prefetch" as="script" href="js/reminders.js">
+  <link rel="prefetch" as="script" href="js/history.js">
+  <link rel="prefetch" as="script" href="js/editor.js">
+  <link rel="prefetch" as="script" href="js/backup.js">
+  <link rel="prefetch" as="script" href="js/swap.js">
 </head>
 <body>
 <header class="hdr">
@@ -71,7 +87,6 @@
   <button class="nbtn" id="nav-cardio" onclick="switchTab('cardio')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Cardio</button>
   <button class="nbtn" id="nav-profile" onclick="switchTab('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profil</button>
 </nav>
-<script src="script.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));

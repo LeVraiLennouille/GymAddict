@@ -2,7 +2,7 @@
 
 **GymAddict** est une application web progressive (PWA) de suivi d'entraînement pensée pour les pratiquants qui combinent **musculation** et **course à pied**. Saisie rapide des séries, détection automatique des records, minuteur de repos, statistiques visuelles : tout fonctionne **hors ligne**, sans compte et sans serveur.
 
-> HTML5 · CSS3 · JavaScript pur · Chart.js · Service Worker · données stockées localement
+> HTML5 · CSS3 · JavaScript pur (découpé en modules chargés à la demande) · graphiques SVG · Service Worker · données stockées localement
 
 ---
 
@@ -129,7 +129,12 @@ Depuis l'onglet **Programme** (bouton **Modifier**), le programme n'est plus fig
 - **Rappels d'entraînement** : activation par interrupteur (la permission de notification est demandée à ce moment), heure du rappel et jours choisis (par défaut, les jours d'entraînement de ton programme, running compris), bouton **Tester la notification**. Le texte indique la séance du jour, par exemple « Dos & Épaules + Fractionné HIIT ».
   - Aucun rappel si la séance ou la sortie du jour est déjà faite, ni plus d'un rappel par jour ; il part au plus tard 3 h après l'heure choisie.
   - **HTTPS obligatoire** (ou localhost). Sur Chrome / Edge Android avec l'appli installée, le rappel peut partir **appli fermée** (Periodic Background Sync, selon l'engagement et la gestion de la batterie). Ailleurs (Firefox, Safari / iPhone), il n'est envoyé que tant que l'appli est ouverte, même en arrière-plan. Sans serveur de notifications push, un envoi à heure fixe appli fermée ne peut pas être garanti sur tous les navigateurs.
-- **Sauvegarde des données** : **Sauvegarder** exporte tout (séances, records, programme, poids, préférences…) dans un fichier JSON daté ; **Restaurer** réimporte un fichier après confirmation et remplace les données de l'appareil. La date de la dernière sauvegarde est affichée. Sur iPhone / iPad, l'export passe par la feuille de partage (Enregistrer dans Fichiers). Avant une restauration, l'état précédent est copié dans une clé de secours `fitcore_before_import`.
+- **Sauvegarde des données** : **Sauvegarder** exporte tout (séances, records, programme, poids, objectifs, préférences…) dans un fichier JSON daté ; sur iPhone / iPad, l'export passe par la feuille de partage (Enregistrer dans Fichiers). **Restaurer** lit un fichier de sauvegarde et propose deux modes :
+  - **Fusionner** (recommandé) : ajoute à l'appareil les séances, records, sorties, pesées et objectifs du fichier, sans rien supprimer. Pour un même jour, la version la plus complète est gardée ; le meilleur record l'emporte ; programme, profil et réglages de l'appareil sont conservés. Un aperçu indique le nombre d'éléments ajoutés.
+  - **Remplacer** : efface l'appareil et reprend le fichier.
+  - Avant toute restauration, l'état précédent est copié dans la clé de secours `fitcore_before_import`.
+- **Bandeau de sauvegarde** : un bandeau discret en haut de l'appli apparaît (à partir de 3 séances) si tu n'as jamais sauvegardé depuis plus d'une semaine, ou si la dernière sauvegarde date de 30 jours ou plus ; il propose **Sauvegarder** ou de repousser le rappel de 7 jours. L'appli demande aussi au navigateur de **protéger le stockage** contre l'effacement automatique une fois l'appli utilisée.
+- **Diagnostic de l'appareil** : le bouton **Vérifier mon appareil** contrôle sur ton téléphone le HTTPS, l'installation, le service worker, le mode hors ligne, la protection du stockage et l'espace utilisé, les notifications, les rappels en arrière-plan, le maintien de l'écran allumé, le son, la vibration et le partage de fichier, avec des boutons de test.
 - **Zone danger** : réinitialisation complète des données, avec confirmation. Le pseudo, l'avatar, le **programme personnalisé** et les préférences sont conservés ; l'ancienneté repart de zéro.
 
 ---
@@ -158,9 +163,9 @@ La vue **Programme** affiche la semaine en cours, du lundi au dimanche. Un encar
 
 - **Manifeste** (`manifest.json`) : nom « Gym Addict », affichage `standalone`, orientation portrait, catégories santé / fitness / sport, icônes 192 et 512 px (dont une version *maskable*) et icône Apple Touch.
 - **Raccourcis d'application** (appui long sur l'icône) : « Aujourd'hui », « Programme », « Cardio » et « Statistiques ». L'appli lit l'ancre de l'URL (`#today`, `#week`, `#stats`, `#cardio`, `#profile`) au démarrage et quand l'URL change, puis la nettoie : elle s'ouvre directement sur le bon onglet.
-- **Service Worker** (`sw.js`, cache `ga-v2.8.4`) :
+- **Service Worker** (`sw.js`, cache `ga-v2.8.6`) :
   - **pré-cache** de l'application (HTML, CSS, JS, manifeste, icônes) à l'installation ;
-  - stratégie **cache-first** pour les fichiers de l'appli, les polices Google Fonts et Chart.js (CDN) ;
+  - stratégie **cache-first** pour les fichiers de l'appli et les polices Google Fonts ;
   - stratégie **network-first** avec repli sur le cache pour les autres requêtes ;
   - **nettoyage automatique** des anciens caches à l'activation, avec prise de contrôle immédiate des pages ouvertes ;
   - message de repli « Hors ligne » quand une ressource est indisponible ;
@@ -184,13 +189,13 @@ Conséquences à connaître : les données sont propres à chaque navigateur et 
 
 L'application ne nécessite ni build ni dépendance à installer.
 
-1. Placez les fichiers `index.html`, `style.css`, `script.js`, `manifest.json` et `sw.js` à la racine, avec le dossier `assets/` contenant les icônes (`icon-192.png`, `icon-512.png`, `icon-512-maskable.png`, `apple-touch-icon.png`).
+1. Placez les fichiers `index.html`, `style.css`, `manifest.json` et `sw.js` à la racine, avec le dossier `js/` (tous les fichiers sont nécessaires : le service worker les met en cache à l'installation) et le dossier `assets/` contenant les icônes (`icon-192.png`, `icon-512.png`, `icon-512-maskable.png`, `apple-touch-icon.png`).
 2. Servez le dossier en **HTTPS** (GitHub Pages, Netlify, Vercel…) ou en local, par exemple avec `npx serve` ou `python -m http.server`. Le service worker et l'installation PWA ne fonctionnent pas en ouvrant directement le fichier (`file://`).
 3. Ouvrez l'adresse dans un navigateur moderne, puis :
    - **Android / Chrome** : menu → *Installer l'application* ;
    - **iOS / Safari** : Partager → *Sur l'écran d'accueil*.
 
-Une connexion est nécessaire au premier chargement pour récupérer Chart.js et les polices ; ensuite, tout est mis en cache.
+Une connexion est utile au premier chargement pour récupérer les polices (l'appli reste utilisable avec les polices du système sinon) ; ensuite, tout est mis en cache et l'appli fonctionne hors ligne, graphiques compris.
 
 ---
 
@@ -199,19 +204,42 @@ Une connexion est nécessaire au premier chargement pour récupérer Chart.js et
 ```
 ├── index.html        Structure, onglets, minuteur, fenêtre de record, tiroir, navigation
 ├── style.css         Thème clair / sombre, composants, animations
-├── script.js         Programme par défaut, éditeur, logique métier, minuteur, rendu des 5 onglets, graphiques
 ├── manifest.json     Métadonnées PWA, icônes, raccourcis
-├── sw.js             Service Worker (cache et mode hors ligne)
+├── sw.js             Service Worker (cache, mode hors ligne, rappels)
 ├── readme.md         Ce fichier
-└── assets/           Icônes de l'application
+├── assets/           Icônes de l'application
+└── js/
+    ├── loader.js     Chargeur de modules à la demande
+    ├── data.js       Programme par défaut, configuration, stockage, calculs de base           ┐
+    ├── core.js       Écran Séance, minuteur, séries, records, supersets, sauter / reporter    ├ chargés
+    ├── stubs.js      Points d'entrée des modules à la demande (générés)                       │ au démarrage
+    ├── app.js        Navigation par onglets et démarrage                                      ┘
+    ├── stats.js      Onglet Stats : graphiques SVG, calendrier, objectifs, volume, poids      ┐
+    ├── week.js       Onglet Programme : planning, cardio de la semaine, tiroir d'un jour      │
+    ├── cardio.js     Onglet Cardio : zones et sorties running                                 │
+    ├── profile.js    Onglet Profil : avatar, données, minuteur, réinitialisation              │ chargés à la
+    ├── editor.js     Éditeur de programme et de sorties running                               │ demande
+    ├── history.js    Historique, duplication d'une séance, résumé de fin de séance            │
+    ├── backup.js     Sauvegarde, import / fusion, diagnostic de l'appareil                    │
+    ├── reminders.js  Rappels d'entraînement (notifications)                                   │
+    └── swap.js       Remplacement d'un exercice                                               ┘
 ```
+
+### Chargement
+
+Au démarrage, seul le **noyau** (`loader`, `data`, `core`, `stubs`, `app`, environ 86 Ko au lieu de 200 Ko, soit 26 Ko au lieu de 57 Ko une fois compressés) est chargé : il suffit à afficher l'écran Séance, lancer le minuteur et valider des séries. Les autres modules sont chargés à la **première utilisation** (ouverture d'un onglet, d'un éditeur, d'une fenêtre…) ; ils sont aussi préchargés à basse priorité par le navigateur et mis en cache par le service worker, donc ils restent disponibles hors ligne et s'ouvrent instantanément ensuite. Si un module ne peut pas être chargé (hors ligne, jamais mis en cache), un message l'indique.
+
+### Développement
+
+- Les scripts sont des scripts classiques (pas de modules ES) partageant le même espace global : les gestionnaires `onclick="…"` du HTML continuent de fonctionner.
+- Une fonction d'un module à la demande appelée **depuis un autre fichier ou depuis du HTML** doit avoir son point d'entrée dans `stubs.js` (elle charge le module puis s'exécute). Une fonction appelée pour sa **valeur de retour**, ou une constante, doit rester dans le noyau, ou son module doit être déclaré en dépendance dans `loader.js`.
+- Tout nouveau fichier est à ajouter à la liste `STATIC_ASSETS` de `sw.js`, et la version `CACHE_VERSION` est à incrémenter à chaque publication.
 
 ## Technologies
 
 - **HTML5 / CSS3** : variables CSS, Flexbox, Grid, `prefers-color-scheme`
 - **JavaScript** vanilla (ES6+), sans framework
-- **Chart.js 4.4.1** : courbes, barres et radar
 - **Google Fonts** : Anton (titres et chiffres), Figtree (texte)
 - **Service Worker** et **Web App Manifest**
 - **Web Audio**, **Vibration** et **Screen Wake Lock** (minuteur de repos)
-- **SVG** inline pour la courbe du poids, **File API / Web Share** pour l'export et l'import
+- **SVG** inline pour tous les graphiques (courbe de charges, tonnage, radar, poids), sans bibliothèque ni CDN ; **File API / Web Share** pour l'export et l'import

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'ga-v2.8.5';
+const CACHE_VERSION = 'ga-v2.8.6';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_FONTS   = `${CACHE_VERSION}-fonts`;
 const CACHE_CONFIG  = 'ga-config'; /* non versionné : config des rappels, lue ici et écrite par la page */
@@ -6,7 +6,20 @@ const CACHE_CONFIG  = 'ga-config'; /* non versionné : config des rappels, lue i
 const STATIC_ASSETS = [
   './index.html',
   './style.css',
-  './script.js',
+  './js/loader.js',
+  './js/data.js',
+  './js/core.js',
+  './js/stubs.js',
+  './js/app.js',
+  './js/stats.js',
+  './js/week.js',
+  './js/cardio.js',
+  './js/profile.js',
+  './js/reminders.js',
+  './js/history.js',
+  './js/editor.js',
+  './js/backup.js',
+  './js/swap.js',
   './manifest.json',
   './assets/icon-192.png',
   './assets/icon-512.png',
