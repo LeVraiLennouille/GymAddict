@@ -1,89 +1,16 @@
-/* GymAddict — module « swap » (chargé à la demande) */
-/* Candidats : exercices connus qui travaillent le même muscle et ne sont pas déjà dans la séance du jour */
-function swapCandidates(ex,k){
-  const {prog}=getEffectiveDayProgram(k);
-  const present=new Set(dayExercises(k,prog).map(e=>e.id));
-  const pool={};
-  const d=gs();
-  Object.values(d.exDefs||{}).forEach(e=>{pool[e.id]=e;});
-  Object.values(PROGRAM).forEach(p=>p.exercises.forEach(e=>{pool[e.id]=e;}));
-  const main=(ex.muscles||[])[0];
-  return Object.values(pool).filter(c=>!present.has(c.id)&&c.type!=='echauffement'&&(c.muscles||[]).some(m=>(ex.muscles||[]).includes(m))).map(c=>{
-    let score=0;
-    if((c.muscles||[])[0]===main)score+=3;
-    if(c.type===ex.type)score+=1;
-    if(!!c.isTime===!!ex.isTime)score+=1;
-    return {c,score};
-  }).sort((a,b)=>b.score-a.score||a.c.name.localeCompare(b.c.name)).slice(0,8).map(x=>x.c);
-}
-function buildSwapDef(orig,cand,k){
-  const base=orig.swappedFrom||orig.id;
-  const timeMismatch=!!cand.isTime!==!!orig.isTime;
-  const def=Object.assign({},orig,{
-    id:cand.id,name:cand.name,type:cand.type||orig.type,muscles:(cand.muscles&&cand.muscles.length)?cand.muscles.slice():(orig.muscles||[]).slice(),
-    restSec:cand.restSec||orig.restSec,swappedFrom:base,swappedName:orig.swappedName||orig.name
-  });
-  if(cand.isTime)def.isTime=true;else delete def.isTime;
-  if(timeMismatch){def.repsLabel=cand.repsLabel||(cand.isTime?'30-60 sec':'8-12 reps');def.defaultReps=cand.defaultReps||(cand.isTime?45:10);}
-  delete def.step;if(cand.step>0)def.step=cand.step;
-  return def;
-}
-function showSwapModal(k,exId){
-  closeModal();
-  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
-  const ex=dayExercises(k,prog).find(e=>e.id===exId);if(!ex)return;
-  const cands=swapCandidates(ex,k);
-  const list=cands.length?cands.map(c=>`<button class="swap-item" onclick="doSwap('${k}','${exId}','${c.id}')"><b>${escA(c.name)}</b><span>${escA(({compound:'Compound',isolation:'Isolation',echauffement:'Échauffement'})[c.type]||'')}${(c.muscles||[]).length?' · '+escA(c.muscles.join(', ')):''}</span></button>`).join(''):`<div class="ed-hint" style="margin:6px 0 12px">Aucune suggestion : indique l'exercice que tu fais à la place.</div>`;
-  document.body.insertAdjacentHTML('beforeend',`<div class="modal-overlay" id="swapModal" onclick="if(event.target.id==='swapModal')closeModal()">
+function swapCandidates(c,a){const{prog:i}=getEffectiveDayProgram(a),o=new Set(dayExercises(a,i).map(e=>e.id)),t={},r=gs();Object.values(r.exDefs||{}).forEach(e=>{t[e.id]=e}),Object.values(PROGRAM).forEach(e=>e.exercises.forEach(s=>{t[s.id]=s}));const n=(c.muscles||[])[0];return Object.values(t).filter(e=>!o.has(e.id)&&e.type!=="echauffement"&&(e.muscles||[]).some(s=>(c.muscles||[]).includes(s))).map(e=>{let s=0;return(e.muscles||[])[0]===n&&(s+=3),e.type===c.type&&(s+=1),!!e.isTime==!!c.isTime&&(s+=1),{c:e,score:s}}).sort((e,s)=>s.score-e.score||e.c.name.localeCompare(s.c.name)).slice(0,8).map(e=>e.c)}
+function buildSwapDef(s,e,i){const m=s.swappedFrom||s.id,p=!!e.isTime!=!!s.isTime,t=Object.assign({},s,{id:e.id,name:e.name,type:e.type||s.type,muscles:e.muscles&&e.muscles.length?e.muscles.slice():(s.muscles||[]).slice(),restSec:e.restSec||s.restSec,swappedFrom:m,swappedName:s.swappedName||s.name});return e.isTime?t.isTime=!0:delete t.isTime,p&&(t.repsLabel=e.repsLabel||(e.isTime?"30-60 sec":"8-12 reps"),t.defaultReps=e.defaultReps||(e.isTime?45:10)),delete t.step,e.step>0&&(t.step=e.step),t}
+function showSwapModal(s,l){closeModal();const{prog:i}=getEffectiveDayProgram(s);if(!i)return;const a=dayExercises(s,i).find(e=>e.id===l);if(!a)return;const o=swapCandidates(a,s),t=o.length?o.map(e=>`<button class="swap-item" onclick="doSwap('${s}','${l}','${e.id}')"><b>${escA(e.name)}</b><span>${escA({compound:"Compound",isolation:"Isolation",echauffement:"Échauffement"}[e.type]||"")}${(e.muscles||[]).length?" · "+escA(e.muscles.join(", ")):""}</span></button>`).join(""):`<div class="ed-hint" style="margin:6px 0 12px">Aucune suggestion : indique l'exercice que tu fais à la place.</div>`;document.body.insertAdjacentHTML("beforeend",`<div class="modal-overlay" id="swapModal" onclick="if(event.target.id==='swapModal')closeModal()">
     <div class="modal-box">
-      <div class="modal-hdr"><div class="modal-title">Remplacer l'exercice</div><button class="drawer-close" onclick="closeModal()" aria-label="Fermer">${ic('close')}</button></div>
-      <div class="sum-sub" style="margin-top:6px">${escA(ex.name)} · même volume (${ex.sets} × ${escA(ex.repsLabel)}), pour aujourd'hui seulement.</div>
-      <div class="swap-list">${list}</div>
+      <div class="modal-hdr"><div class="modal-title">Remplacer l'exercice</div><button class="drawer-close" onclick="closeModal()" aria-label="Fermer">${ic("close")}</button></div>
+      <div class="sum-sub" style="margin-top:6px">${escA(a.name)} · même volume (${a.sets} × ${escA(a.repsLabel)}), pour aujourd'hui seulement.</div>
+      <div class="swap-list">${t}</div>
       <span class="set-lbl ed-lbl" style="margin-top:14px">AUTRE EXERCICE</span>
       <div class="swap-free"><input class="ex-note-inp" id="swapFree" list="swapNames" maxlength="60" placeholder="Nom de l'exercice" autocomplete="off">
-      <datalist id="swapNames">${knownExercises().map(e=>`<option value="${escA(e.name)}"></option>`).join('')}</datalist>
-      <button class="btn-calc" onclick="doSwapFree('${k}','${exId}')">Utiliser</button></div>
-    </div></div>`);
-}
-function applySwap(k,orig,def){
-  const d=gs();
-  if(!d.swaps)d.swaps={};
-  if(!d.swaps[k])d.swaps[k]={};
-  d.swaps[k][def.swappedFrom]=def;
-  d.exNames=Object.assign({},d.exNames||{});d.exNames[def.id]=def.name;
-  d.exDefs=Object.assign({},d.exDefs||{});d.exDefs[def.id]={id:def.id,name:def.name,type:def.type,muscles:def.muscles,isTime:!!def.isTime};
-  if(d.skipped&&d.skipped[k])d.skipped[k]=d.skipped[k].filter(x=>x!==orig.id);
-  ss(d);triggerSave();
-  closeModal();
-  rerenderDay(k,true);
-  showToast('Remplacé par '+def.name);
-}
-function doSwap(k,exId,candId){
-  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
-  const ex=dayExercises(k,prog).find(e=>e.id===exId);
-  const cand=swapCandidates(ex,k).find(c=>c.id===candId);
-  if(!ex||!cand)return;
-  applySwap(k,ex,buildSwapDef(ex,cand,k));
-}
-function doSwapFree(k,exId){
-  const inp=document.getElementById('swapFree');
-  const name=cleanName(inp?inp.value:'');
-  if(!name){showToast("Indique le nom de l'exercice");return;}
-  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
-  const ex=dayExercises(k,prog).find(e=>e.id===exId);if(!ex)return;
-  const known=knownExercises().find(e=>normName(e.name)===normName(name));
-  const id=known?known.id:'x_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-  const defs=(gs().exDefs||{})[id];
-  applySwap(k,ex,buildSwapDef(ex,Object.assign({muscles:ex.muscles,type:ex.type},defs||{},{id,name:known?known.name:name}),k));
-}
-function revertSwap(k,exId){
-  const {prog}=getEffectiveDayProgram(k);if(!prog)return;
-  const ex=dayExercises(k,prog).find(e=>e.id===exId);if(!ex||!ex.swappedFrom)return;
-  for(let i=0;i<ex.sets;i++)if(getSet(k,exId,i).done){showToast('Impossible : des séries sont déjà validées');return;}
-  const d=gs();
-  if(d.swaps&&d.swaps[k]){delete d.swaps[k][ex.swappedFrom];if(!Object.keys(d.swaps[k]).length)delete d.swaps[k];}
-  if(d.workouts&&d.workouts[k])delete d.workouts[k][exId];
-  ss(d);triggerSave();
-  rerenderDay(k,true);
-  showToast('Exercice d\'origine rétabli');
-}
+      <datalist id="swapNames">${knownExercises().map(e=>`<option value="${escA(e.name)}"></option>`).join("")}</datalist>
+      <button class="btn-calc" onclick="doSwapFree('${s}','${l}')">Utiliser</button></div>
+    </div></div>`)}
+function applySwap(a,p,e){const s=gs();s.swaps||(s.swaps={}),s.swaps[a]||(s.swaps[a]={}),s.swaps[a][e.swappedFrom]=e,s.exNames=Object.assign({},s.exNames||{}),s.exNames[e.id]=e.name,s.exDefs=Object.assign({},s.exDefs||{}),s.exDefs[e.id]={id:e.id,name:e.name,type:e.type,muscles:e.muscles,isTime:!!e.isTime},s.skipped&&s.skipped[a]&&(s.skipped[a]=s.skipped[a].filter(i=>i!==p.id)),ss(s),triggerSave(),closeModal(),rerenderDay(a,!0),showToast("Remplacé par "+e.name)}
+function doSwap(a,t,f){const{prog:d}=getEffectiveDayProgram(a);if(!d)return;const i=dayExercises(a,d).find(n=>n.id===t),e=swapCandidates(i,a).find(n=>n.id===f);!i||!e||applySwap(a,i,buildSwapDef(i,e,a))}
+function doSwapFree(n,r){const a=document.getElementById("swapFree"),s=cleanName(a?a.value:"");if(!s){showToast("Indique le nom de l'exercice");return}const{prog:i}=getEffectiveDayProgram(n);if(!i)return;const e=dayExercises(n,i).find(o=>o.id===r);if(!e)return;const t=knownExercises().find(o=>normName(o.name)===normName(s)),c=t?t.id:"x_"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),m=(gs().exDefs||{})[c];applySwap(n,e,buildSwapDef(e,Object.assign({muscles:e.muscles,type:e.type},m||{},{id:c,name:t?t.name:s}),n))}
+function revertSwap(e,o){const{prog:i}=getEffectiveDayProgram(e);if(!i)return;const t=dayExercises(e,i).find(r=>r.id===o);if(!t||!t.swappedFrom)return;for(let r=0;r<t.sets;r++)if(getSet(e,o,r).done){showToast("Impossible : des séries sont déjà validées");return}const s=gs();s.swaps&&s.swaps[e]&&(delete s.swaps[e][t.swappedFrom],Object.keys(s.swaps[e]).length||delete s.swaps[e]),s.workouts&&s.workouts[e]&&delete s.workouts[e][o],ss(s),triggerSave(),rerenderDay(e,!0),showToast("Exercice d'origine rétabli")}
