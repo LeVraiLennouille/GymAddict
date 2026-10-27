@@ -163,7 +163,7 @@ La vue **Programme** affiche la semaine en cours, du lundi au dimanche. Un encar
 
 - **Manifeste** (`manifest.json`) : nom « Gym Addict », affichage `standalone`, orientation portrait, catégories santé / fitness / sport, icônes 192 et 512 px (dont une version *maskable*) et icône Apple Touch.
 - **Raccourcis d'application** (appui long sur l'icône) : « Aujourd'hui », « Programme », « Cardio » et « Statistiques ». L'appli lit l'ancre de l'URL (`#today`, `#week`, `#stats`, `#cardio`, `#profile`) au démarrage et quand l'URL change, puis la nettoie : elle s'ouvre directement sur le bon onglet.
-- **Service Worker** (`sw.js`, cache `ga-v2.8.6`) :
+- **Service Worker** (`sw.js`, cache `ga-v2.10`) :
   - **pré-cache** de l'application (HTML, CSS, JS, manifeste, icônes) à l'installation ;
   - stratégie **cache-first** pour les fichiers de l'appli et les polices Google Fonts ;
   - stratégie **network-first** avec repli sur le cache pour les autres requêtes ;
