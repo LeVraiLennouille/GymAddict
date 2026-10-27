@@ -1,4 +1,4 @@
-const CACHE_VERSION="ga-v2.8.6";
+const CACHE_VERSION="ga-v2.9";
 const CACHE_STATIC=`${CACHE_VERSION}-static`;
 const CACHE_FONTS=`${CACHE_VERSION}-fonts`;
 const CACHE_CONFIG="ga-config";
