@@ -1,5 +1,0 @@
-const LAZY_MODULES={backup:{deps:[]},cardio:{deps:[]},editor:{deps:[]},history:{deps:[]},profile:{deps:["reminders","backup"]},reminders:{deps:[]},stats:{deps:[]},swap:{deps:[]},week:{deps:[]}};
-function _lazyOrder(r,a,f){a.has(r)||(a.add(r),(LAZY_MODULES[r].deps||[]).forEach(h=>_lazyOrder(h,a,f)),f.push(r))}
-function _lazyScript(r){const n=LAZY_MODULES[r];return n.p||(n.p=new Promise((o,s)=>{const e=document.createElement("script");e.src="js/"+r+".js",e.async=!1,e.onload=o,e.onerror=()=>{n.p=null,s(new Error("Module indisponible : "+r))},document.head.appendChild(e)})),n.p}
-function loadModule(r){if(!LAZY_MODULES[r])return Promise.reject(new Error("Module inconnu : "+r));const e=[];return _lazyOrder(r,new Set,e),Promise.all(e.map(_lazyScript)).then(()=>{})}
-function _lazyFail(o){console.error(o),typeof showToast=="function"&&showToast("Chargement impossible : réessaie avec du réseau")}

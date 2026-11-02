@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "GymAddict",
+    "slug": "gymaddict",
+    "version": "3.0.0",
+    "scheme": "gymaddict",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "fr.lennouille.gymaddict"
+    },
+    "android": {
+      "package": "fr.lennouille.gymaddict",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ECEDF0"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Gym Addict",
+      "shortName": "GymAddict",
+      "description": "Full assist app : Suivi d'entraînement",
+      "lang": "fr",
+      "themeColor": "#ECEDF0",
+      "backgroundColor": "#ECEDF0"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#12A150"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#ECEDF0",
+          "dark": {
+            "backgroundColor": "#0A0B0E"
+          }
+        }
+      ],
+      "expo-asset"
+    ]
+  }
+}
