@@ -10,12 +10,12 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "build:web": "expo export --platform web"
+    "build:web": "expo export --platform web",
+    "typecheck:tests": "tsc -p tests/tsconfig.json"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "latest",
     "expo": "latest",
-    "expo-asset": "~58.0.19",
     "expo-audio": "latest",
     "expo-blur": "latest",
     "expo-constants": "latest",

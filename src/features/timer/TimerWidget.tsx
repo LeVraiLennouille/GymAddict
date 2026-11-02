@@ -72,7 +72,7 @@ export function TimerWidget() {
       style={{ position: 'absolute', left: 12, right: 12, bottom: 98 + insets.bottom, alignItems: 'center', zIndex: 200 }}
     >
       <Animated.View
-        accessibilityLiveRegion="off"
+        accessibilityLiveRegion="none"
         style={{
           transform: [{ translateY: slide }],
           backgroundColor: bg,

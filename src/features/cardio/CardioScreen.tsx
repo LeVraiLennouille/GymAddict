@@ -14,6 +14,7 @@ import { CommitInput } from '@/ui/CommitInput';
 import { Icon } from '@/ui/Icon';
 import { SectionTitle } from '@/ui/SectionTitle';
 import { Text } from '@/ui/Text';
+import type { ScrollViewHandle } from '@/ui/types';
 import { useCardio, type CardioModel } from './hooks/useCardio';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -135,7 +136,7 @@ export function CardioScreen() {
   const router = useRouter();
   const { run: runParam } = useLocalSearchParams<{ run: string }>();
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewHandle>(null);
   const layout = useRef({ card: 0, section: 0, runs: {} as Record<string, number> });
   const [expanded, setExpanded] = useState(false);
   const [ageDraft, setAgeDraft] = useState<string | null>(null);

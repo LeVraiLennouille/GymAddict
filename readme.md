@@ -7,7 +7,8 @@ Version universelle (iOS, Android, navigateur) de GymAddict : Expo, Expo Router,
 ```bash
 npm install
 npx expo install --fix     # aligne toutes les dépendances sur la version d'Expo installée
-npm run typecheck          # tsc --noEmit
+npm run typecheck          # tsc --noEmit sur l'appli (les tests en sont exclus)
+npm run typecheck:tests    # typage des tests (nécessite @types/node, déjà dans devDependencies)
 npm test                   # 146 tests : règles métier, robustesse, sens des dépendances
 npm run web                # ou: npm run ios / npm run android
 ```

@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Tabs } from 'expo-router';
+import { useRouter, type Tabs } from 'expo-router';
 import { useTheme } from '@/theme/ThemeProvider';
 import { MAX_WIDTH } from '@/theme/tokens';
 import { Icon, type IconName } from './Icon';
@@ -9,18 +9,23 @@ import { Text } from './Text';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-const TAB_META: Record<string, { label: string; icon: IconName }> = {
-  index: { label: 'Séance', icon: 'home' },
-  week: { label: 'Programme', icon: 'calendar' },
-  stats: { label: 'Stats', icon: 'bars' },
-  cardio: { label: 'Cardio', icon: 'pulse' },
-  profile: { label: 'Profil', icon: 'user' },
+const TAB_META: Record<string, { label: string; icon: IconName; href: '/' | '/week' | '/stats' | '/cardio' | '/profile' }> = {
+  index: { label: 'Séance', icon: 'home', href: '/' },
+  week: { label: 'Programme', icon: 'calendar', href: '/week' },
+  stats: { label: 'Stats', icon: 'bars', href: '/stats' },
+  cardio: { label: 'Cardio', icon: 'pulse', href: '/cardio' },
+  profile: { label: 'Profil', icon: 'user', href: '/profile' },
 };
 
-/** Barre d'onglets flottante (ancien `.bnav`). */
-export function FloatingTabBar({ state, navigation }: TabBarProps) {
+/**
+ * Barre d'onglets flottante (ancien `.bnav`).
+ * La navigation passe par le routeur plutôt que par l'objet `navigation` de React Navigation,
+ * dont la forme change d'une version à l'autre.
+ */
+export function FloatingTabBar({ state }: TabBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   return (
     <View
       pointerEvents="box-none"
@@ -42,8 +47,7 @@ export function FloatingTabBar({ state, navigation }: TabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={meta.label}
               onPress={() => {
-                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-                if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+                if (!focused) router.navigate(meta.href);
               }}
               style={{
                 flex: 1,

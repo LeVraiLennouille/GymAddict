@@ -34,12 +34,9 @@ export function Text({
     fontSize: size,
     color: color ?? palette[tone],
     fontVariant: ['tabular-nums'],
+    ...(display ? { letterSpacing: size * 0.015 } : {}),
+    ...(uppercase ? { textTransform: 'uppercase' as const, letterSpacing: size * 0.07 } : {}),
+    ...(align ? { textAlign: align } : {}),
   };
-  if (display) base.letterSpacing = size * 0.015;
-  if (align) base.textAlign = align;
-  if (uppercase) {
-    base.textTransform = 'uppercase';
-    base.letterSpacing = size * 0.07;
-  }
   return <RNText {...rest} style={[base, style]} />;
 }

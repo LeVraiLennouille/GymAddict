@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { LayoutChangeEvent, ScrollView } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
+import type { ScrollViewHandle } from '@/ui/types';
 
 const SCROLL_MARGIN = 84;
 
 /** Défilement vers une carte d'exercice (superset suivant, exercice suivant après la dernière série). */
 export function useRevealScroll() {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewHandle>(null);
   const positions = useRef<Record<string, number>>({});
 
   const reveal = useCallback((exerciseId: string) => {
