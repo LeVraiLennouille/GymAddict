@@ -82,6 +82,14 @@ du jour est déjà fait. Le plan est recalculé à chaque changement utile et au
 Aujourd'hui / Programme / Cardio / Stats) et un service worker (appli utilisable hors connexion).
 Le navigateur reçoit une demande de stockage persistant une seule fois.
 
+## En cas de problème au lancement
+
+- Avertissements « No route named "index" exists… » ou « No screens are declared in ./_layout.tsx » :
+  le fichier `app/_layout.tsx` doit contenir `<Stack` (layout racine) et `app/(tabs)/_layout.tsx` doit
+  contenir `<Tabs`. Les deux s'appellent `_layout.tsx` : s'ils sont mélangés lors d'une copie, l'appli
+  n'affiche rien. `npm test` le détecte (tests/architecture.test.ts).
+- Après toute modification de routes ou de configuration : `npx expo start --clear`.
+
 ## Ce qui n'a pas pu être vérifié ici
 
 Pas d'accès réseau pour installer Expo : rien n'a tourné sur appareil ni dans un navigateur.

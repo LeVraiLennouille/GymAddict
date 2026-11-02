@@ -48,7 +48,7 @@ export function Icon({ name, size = 18, color, strokeWidth = 2.2, filled = false
   const c = color ?? tone.text;
   const shapes: Shape[] = SHAPES[name];
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden>
+    <Svg width={size} height={size} viewBox="0 0 24 24">
       <G
         fill={filled ? c : 'none'}
         stroke={c}

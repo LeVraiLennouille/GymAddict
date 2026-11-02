@@ -8,6 +8,7 @@ import { MAX_WIDTH } from '@/theme/tokens';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { Text } from './Text';
+import { USE_NATIVE_DRIVER } from './animation';
 
 interface AppHeaderProps {
   streak: number;
@@ -25,9 +26,9 @@ export function AppHeader({ streak, regularity, savedAt }: AppHeaderProps) {
   useEffect(() => {
     if (!savedAt) return;
     Animated.sequence([
-      Animated.timing(saved, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(saved, { toValue: 1, duration: 200, useNativeDriver: USE_NATIVE_DRIVER }),
       Animated.delay(1500),
-      Animated.timing(saved, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(saved, { toValue: 0, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
   }, [savedAt, saved]);
 

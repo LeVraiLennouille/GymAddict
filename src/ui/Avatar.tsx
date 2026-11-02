@@ -42,7 +42,7 @@ export function Avatar({ avatar, size = 68, radius }: { avatar: AvatarKey; size?
         overflow: 'hidden',
       }}
     >
-      <Svg width={logo} height={logo} viewBox="36 36 428 428" accessibilityElementsHidden>
+      <Svg width={logo} height={logo} viewBox="36 36 428 428">
         {LOGO_BARS.map((bar, i) => (
           <Path key={i} d={bar.d} fill={look.bars?.[i] ?? bar.fill} />
         ))}

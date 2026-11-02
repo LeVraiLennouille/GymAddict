@@ -7,6 +7,7 @@ import { Icon } from './Icon';
 import { SurfaceProvider } from './Surface';
 import { Text } from './Text';
 import { useFeedbackStore } from './feedbackStore';
+import { USE_NATIVE_DRIVER } from './animation';
 
 const VISIBLE_MS = 5000;
 
@@ -20,9 +21,9 @@ export function PrPopupHost() {
   useEffect(() => {
     if (!info) return;
     slide.setValue(-260);
-    Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 8 }).start();
+    Animated.spring(slide, { toValue: 0, useNativeDriver: USE_NATIVE_DRIVER, bounciness: 8 }).start();
     const id = setTimeout(() => {
-      Animated.timing(slide, { toValue: -260, duration: 300, useNativeDriver: true }).start(({ finished }) => {
+      Animated.timing(slide, { toValue: -260, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }).start(({ finished }) => {
         if (finished) hidePr();
       });
     }, VISIBLE_MS);
@@ -31,7 +32,7 @@ export function PrPopupHost() {
 
   if (!info) return null;
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', top: 70 + insets.top, left: 16, right: 16, alignItems: 'center', zIndex: 300 }}>
+    <View style={{ position: 'absolute', top: 70 + insets.top, left: 16, right: 16, alignItems: 'center', zIndex: 300, pointerEvents: 'box-none' }}>
       <Animated.View style={{ transform: [{ translateY: slide }], width: '100%', maxWidth: 440 }}>
         <SurfaceProvider value="card">
           <Pressable

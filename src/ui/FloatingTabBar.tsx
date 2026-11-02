@@ -27,10 +27,7 @@ export function FloatingTabBar({ state }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   return (
-    <View
-      pointerEvents="box-none"
-      style={{ position: 'absolute', left: 12, right: 12, bottom: 10 + insets.bottom, alignItems: 'center' }}
-    >
+    <View style={{ position: 'absolute', left: 12, right: 12, bottom: 10 + insets.bottom, alignItems: 'center', pointerEvents: 'box-none' }}>
       <View
         accessibilityRole="tablist"
         style={{ width: '100%', maxWidth: MAX_WIDTH - 24, flexDirection: 'row', backgroundColor: colors.navBg, borderRadius: 28, padding: 6 }}

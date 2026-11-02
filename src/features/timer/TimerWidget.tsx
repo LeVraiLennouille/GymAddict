@@ -9,6 +9,7 @@ import { remainingSeconds, useTimerStore } from '@/services/timerStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Icon } from '@/ui/Icon';
 import { Text } from '@/ui/Text';
+import { USE_NATIVE_DRIVER } from '@/ui/animation';
 
 const KEEP_AWAKE_TAG = 'rest-timer';
 const URGENT_SECONDS = 10;
@@ -30,7 +31,7 @@ export function TimerWidget() {
   const lastBeep = useRef(-1);
 
   useEffect(() => {
-    Animated.spring(slide, { toValue: endAt === null ? 200 : 0, useNativeDriver: true, bounciness: 6 }).start();
+    Animated.spring(slide, { toValue: endAt === null ? 200 : 0, useNativeDriver: USE_NATIVE_DRIVER, bounciness: 6 }).start();
   }, [endAt, slide]);
 
   useEffect(() => {
@@ -68,8 +69,7 @@ export function TimerWidget() {
 
   return (
     <View
-      pointerEvents={visible ? 'box-none' : 'none'}
-      style={{ position: 'absolute', left: 12, right: 12, bottom: 98 + insets.bottom, alignItems: 'center', zIndex: 200 }}
+      style={{ position: 'absolute', left: 12, right: 12, bottom: 98 + insets.bottom, alignItems: 'center', zIndex: 200, pointerEvents: visible ? 'box-none' : 'none' }}
     >
       <Animated.View
         accessibilityLiveRegion="none"

@@ -3,6 +3,7 @@ import { Animated, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './Text';
 import { useFeedbackStore } from './feedbackStore';
+import { USE_NATIVE_DRIVER } from './animation';
 
 const VISIBLE_MS = 2800;
 
@@ -18,11 +19,11 @@ export function ToastHost() {
     opacity.setValue(0);
     lift.setValue(20);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-      Animated.timing(lift, { toValue: 0, duration: 250, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(lift, { toValue: 0, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
     const id = setTimeout(() => {
-      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(({ finished }) => {
+      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }).start(({ finished }) => {
         if (finished) hideToast();
       });
     }, VISIBLE_MS);
@@ -31,10 +32,7 @@ export function ToastHost() {
 
   if (!toast) return null;
   return (
-    <View
-      pointerEvents="none"
-      style={{ position: 'absolute', left: 16, right: 16, bottom: 104 + insets.bottom, alignItems: 'center', zIndex: 700 }}
-    >
+    <View style={{ position: 'absolute', left: 16, right: 16, bottom: 104 + insets.bottom, alignItems: 'center', zIndex: 700, pointerEvents: 'none' }}>
       <Animated.View
         accessibilityLiveRegion="polite"
         style={{
