@@ -14,7 +14,7 @@
     "typecheck:tests": "tsc -p tests/tsconfig.json"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-async-storage/async-storage": "latest",
     "expo": "latest",
     "expo-audio": "latest",
     "expo-blur": "latest",
@@ -30,10 +30,10 @@
     "expo-sharing": "latest",
     "expo-splash-screen": "latest",
     "expo-status-bar": "latest",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "latest",
+    "react-dom": "latest",
     "react-native": "latest",
-    "react-native-safe-area-context": "~5.10.1",
+    "react-native-safe-area-context": "latest",
     "react-native-screens": "latest",
     "react-native-svg": "latest",
     "react-native-web": "latest",
@@ -41,9 +41,9 @@
     "zustand": "latest"
   },
   "devDependencies": {
+    "@types/node": "latest",
     "@types/react": "latest",
     "tsx": "latest",
-    "typescript": "latest",
-    "@types/node": "latest"
+    "typescript": "~6.0.3"
   }
 }

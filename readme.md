@@ -9,7 +9,7 @@ npm install
 npx expo install --fix     # aligne toutes les dépendances sur la version d'Expo installée
 npm run typecheck          # tsc --noEmit sur l'appli (les tests en sont exclus)
 npm run typecheck:tests    # typage des tests (nécessite @types/node, déjà dans devDependencies)
-npm test                   # 146 tests : règles métier, robustesse, sens des dépendances
+npm test                   # 151 tests : règles métier, robustesse, architecture, règles web
 npm run web                # ou: npm run ios / npm run android
 ```
 
@@ -94,7 +94,7 @@ Le navigateur reçoit une demande de stockage persistant une seule fois.
 
 Pas d'accès réseau pour installer Expo : rien n'a tourné sur appareil ni dans un navigateur.
 
-- Vérifié : `tsc` strict sur `domain/` (0 erreur) ; 146 tests dont 1 500 jeux de données
+- Vérifié : `tsc` strict sur `domain/` (0 erreur) ; 151 tests dont 1 500 jeux de données
   corrompus et 250 suites de 40 opérations aléatoires (aucune exception, enregistrement stable) ; typage de la couche UI contre des
   déclarations simplifiées de React / React Native / Expo ; résolution de tous les imports internes ;
   syntaxe de `sw.js`, `app.json`, `package.json`, `manifest.webmanifest`.
