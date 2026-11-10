@@ -41,9 +41,9 @@
     "zustand": "latest"
   },
   "devDependencies": {
-    "@types/node": "latest",
     "@types/react": "latest",
     "tsx": "latest",
-    "typescript": "~6.0.3"
+    "typescript": "latest",
+    "@types/node": "latest"
   }
 }

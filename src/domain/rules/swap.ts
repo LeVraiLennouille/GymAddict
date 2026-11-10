@@ -1,5 +1,5 @@
-import type { AppData, DateKey, Exercise, ExerciseId } from '../types';
-import { dayExercises, getEffectiveDayProgram, getProgramConfig } from './program';
+import type { AppData, DateKey, Exercise, ExerciseId, ExerciseType, MuscleKey } from '../types';
+import { baseId, dayExercises, findExDef, getEffectiveDayProgram, getProgramConfig } from './program';
 import { normName } from './sanitize';
 
 /** Exercice proposé en remplacement (définition complète ou partielle). */
@@ -76,4 +76,69 @@ export function buildSwapDef(current: Exercise, target: SwapTarget): Exercise {
   delete swapped.step;
   if (target.step && target.step > 0) swapped.step = target.step;
   return swapped;
+}
+
+/**
+ * Exercice prêt à être ajouté à une séance : la version complète du programme si elle existe
+ * (séries, répétitions, repos), sinon une fiche construite à partir de sa définition connue.
+ */
+export function exerciseTemplate(data: AppData, id: ExerciseId): Exercise | null {
+  for (const prog of Object.values(getProgramConfig(data).programs)) {
+    const ex = prog.exercises.find((e) => e.id === id);
+    if (ex) {
+      const copy: Exercise = { ...ex, muscles: [...ex.muscles] };
+      delete copy.superset;
+      delete copy.swappedFrom;
+      delete copy.swappedName;
+      return copy;
+    }
+  }
+  const def = data.exDefs[id];
+  if (!def) return null;
+  const ex: Exercise = {
+    id: def.id,
+    name: def.name,
+    sets: 3,
+    repsLabel: def.isTime ? '30-60 sec' : '8-12 reps',
+    defaultReps: def.isTime ? 45 : 10,
+    type: def.type,
+    muscles: [...def.muscles],
+    restSec: def.type === 'compound' ? 120 : 90,
+  };
+  if (def.isTime) ex.isTime = true;
+  return ex;
+}
+
+/** Nouvel exercice inventé par l'utilisateur (identifiant unique, valeurs par défaut raisonnables). */
+export function customExercise(name: string, muscles: Exercise['muscles'], type: Exercise['type'], nowMs: number): Exercise {
+  return {
+    id: `ex_${nowMs.toString(36)}`,
+    name,
+    sets: 3,
+    repsLabel: '8-12 reps',
+    defaultReps: 10,
+    type,
+    muscles: [...muscles],
+    restSec: type === 'compound' ? 120 : 90,
+  };
+}
+
+export interface LibraryItem {
+  id: ExerciseId;
+  name: string;
+  muscles: MuscleKey[];
+  type: ExerciseType;
+}
+
+/** Exercices connus que l'on peut ajouter à la séance d'un jour (ceux qui n'y sont pas déjà), par ordre alphabétique. */
+export function exerciseLibrary(data: AppData, date: DateKey): LibraryItem[] {
+  const { prog } = getEffectiveDayProgram(data, date);
+  const taken = new Set(dayExercises(data, date, prog).flatMap((e) => [e.id, baseId(e)]));
+  const items: LibraryItem[] = [];
+  for (const { id, name } of knownExercises(data)) {
+    if (taken.has(id)) continue;
+    const def = findExDef(data, id);
+    items.push({ id, name, muscles: def ? [...def.muscles] : [], type: def?.type ?? 'isolation' });
+  }
+  return items;
 }

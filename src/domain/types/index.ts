@@ -195,9 +195,23 @@ export interface ReminderPrefs {
 
 export type VolumeTargets = Partial<Record<MuscleKey, [number, number]>>;
 
+/** Unité d'affichage des charges. Les données restent toujours enregistrées en kilogrammes. */
+export type Unit = 'kg' | 'lb';
+export type ThemeMode = 'system' | 'light' | 'dark';
+
+/** Matériel de la salle : poids de la barre et disques disponibles (dans l'unité choisie). */
+export interface Equipment {
+  bar: number;
+  /** Tailles de disques, de la plus lourde à la plus légère, sans doublon. */
+  plates: number[];
+}
+
 export interface Prefs {
   sound: boolean;
   vibrate: boolean;
+  unit?: Unit;
+  theme?: ThemeMode;
+  equipment?: Partial<Record<Unit, Equipment>>;
   reminder?: ReminderPrefs;
   backupSnooze?: number;
   persistAsked?: boolean;
@@ -228,6 +242,8 @@ export interface AppData {
   dayOrder: Record<DateKey, ExerciseId[]>;
   skipped: Record<DateKey, ExerciseId[]>;
   swaps: Record<DateKey, Record<ExerciseId, Exercise>>;
+  /** Exercices ajoutés à la volée à la séance d'un jour, en plus du programme. */
+  addedExercises: Record<DateKey, Exercise[]>;
   sessionMeta: Record<DateKey, SessionMeta>;
   readiness: Record<DateKey, Readiness>;
   exNames: Record<ExerciseId, string>;

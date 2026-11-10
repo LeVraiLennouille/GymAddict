@@ -3,6 +3,8 @@ import { create } from 'zustand';
 export interface PrInfo {
   id: number;
   name: string;
+  /** Unité dans laquelle `weight`, `oneRm` et `table` sont déjà exprimés. */
+  unit: 'kg' | 'lb';
   weight: number;
   reps: number;
   /** 1RM estimé (Brzycki), seulement pour plus d'une répétition. */

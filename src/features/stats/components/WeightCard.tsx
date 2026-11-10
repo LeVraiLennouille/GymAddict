@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { useAppStore } from '@/data/store/appStore';
 import { useTodayKey } from '@/data/store/useTodayKey';
 import { fmtDateShort, isDateKey } from '@/domain/format/dates';
+import { useUnit } from '@/features/shared/useUnit';
 import { fmtWeight, weightChartGeometry } from '@/domain/rules/charts';
 import { weightPoints, type WeightRange } from '@/domain/rules/statsView';
 import type { DateKey } from '@/domain/types';
@@ -33,6 +34,7 @@ export function WeightCard({ onAdd, onDelete }: Props) {
   const { colors } = useTheme();
   const data = useAppStore((s) => s.data);
   const today = useTodayKey();
+  const u = useUnit();
   const [range, setRange] = useState<WeightRange>('90');
   const [selected, setSelected] = useState<number | null>(null);
   const [kg, setKg] = useState('');
@@ -43,7 +45,7 @@ export function WeightCard({ onAdd, onDelete }: Props) {
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
   const points = useMemo(() => weightPoints(data, range), [data, range]);
-  const geometry = useMemo(() => weightChartGeometry(points), [points]);
+  const geometry = useMemo(() => weightChartGeometry(points.map((p) => ({ date: p.date, kg: u.convert(p.kg) }))), [points, u]);
   const last = data.weightLog[data.weightLog.length - 1];
   const first = points[0];
   const lastPoint = points[points.length - 1];
@@ -66,16 +68,16 @@ export function WeightCard({ onAdd, onDelete }: Props) {
       <SectionTitle flush>Poids de corps</SectionTitle>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
         <Text display size={42} color="#FFFFFF" style={{ lineHeight: 46 }}>
-          {last ? fmtWeight(last.kg) : '—'}
+          {last ? fmtWeight(u.convert(last.kg)) : '—'}
           <Text size={14} tone="dim">
-            {' kg'}
+            {` ${u.unit}`}
           </Text>
         </Text>
         <Text size={12} tone="dim" style={{ flex: 1 }}>
           {delta !== null && first ? (
             <>
               <Text size={12} weight={700} color={delta > 0 ? colors.red : delta < 0 ? colors.green : colors.onCard.dim}>
-                {`${delta > 0 ? '+' : ''}${fmtWeight(delta)} kg`}
+                {`${delta > 0 ? '+' : ''}${fmtWeight(u.convert(delta))} ${u.unit}`}
               </Text>
               {` depuis le ${fmtDateShort(first.date)}`}
             </>
@@ -109,15 +111,15 @@ export function WeightCard({ onAdd, onDelete }: Props) {
         </Text>
       )}
       <Text size={12} tone="dim" align="center" style={{ minHeight: 18, marginTop: 4 }}>
-        {picked ? `${fmtWeight(picked.kg)} kg · ${fmtDateShort(picked.date)}` : points.length >= 2 ? 'Touche un point pour voir la valeur' : ''}
+        {picked ? `${fmtWeight(u.convert(picked.kg))} ${u.unit} · ${fmtDateShort(picked.date)}` : points.length >= 2 ? 'Touche un point pour voir la valeur' : ''}
       </Text>
 
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 14 }}>
         <View style={{ flex: 1, gap: 3 }}>
           <Text size={10} weight={600} tone="muted" align="center">
-            KG
+            {u.unit.toUpperCase()}
           </Text>
-          <CommitInput numeric value={kg} placeholder="kg" accessibilityLabel="Poids en kilos" onCommit={setKg} onLiveChange={setKg} />
+          <CommitInput numeric value={kg} placeholder={u.unit} accessibilityLabel={`Poids en ${u.unit === 'kg' ? 'kilos' : 'livres'}`} onCommit={setKg} onLiveChange={setKg} />
         </View>
         <View style={{ flex: 1.6, gap: 3 }}>
           <Text size={10} weight={600} tone="muted" align="center">
@@ -134,7 +136,7 @@ export function WeightCard({ onAdd, onDelete }: Props) {
               showToast('Date invalide (AAAA-MM-JJ)');
               return;
             }
-            if (onAdd(kg, date)) {
+            if (onAdd(u.fromInput(kg), date)) {
               setKg('');
               setDate(today);
             }
@@ -152,7 +154,7 @@ export function WeightCard({ onAdd, onDelete }: Props) {
                 <Text size={13} tone="dim" style={{ flex: 1 }}>
                   {fmtDateShort(e.date)}
                 </Text>
-                <Text size={14} weight={700} style={{ marginRight: 12 }}>{`${fmtWeight(e.kg)} kg`}</Text>
+                <Text size={14} weight={700} style={{ marginRight: 12 }}>{`${fmtWeight(u.convert(e.kg))} ${u.unit}`}</Text>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Supprimer la pesée"

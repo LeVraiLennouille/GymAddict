@@ -112,6 +112,7 @@ export function mergeAppData(current: AppData, incoming: AppData): { data: AppDa
     dayOrder: fill(current.dayOrder, incoming.dayOrder),
     skipped: fill(current.skipped, incoming.skipped),
     swaps: fill(current.swaps, incoming.swaps),
+    addedExercises: fill(current.addedExercises, incoming.addedExercises),
     sessionMeta: fill(current.sessionMeta, incoming.sessionMeta),
     readiness: fill(current.readiness, incoming.readiness),
     prs,

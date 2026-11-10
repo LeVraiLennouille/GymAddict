@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { fmtKg } from '@/domain/format/numbers';
+import { useUnit } from '@/features/shared/useUnit';
 import type { PrRow } from '@/domain/rules/statsView';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Button } from '@/ui/Button';
@@ -18,6 +18,7 @@ interface Props {
 /** Records personnels, avec le ratio charge / poids de corps. */
 export function PrCard({ rows, bodyWeight, onSaveBodyWeight }: Props) {
   const { colors } = useTheme();
+  const u = useUnit();
   const [draft, setDraft] = useState<string | null>(null);
   return (
     <Card>
@@ -26,12 +27,12 @@ export function PrCard({ rows, bodyWeight, onSaveBodyWeight }: Props) {
         <Text size={13} tone="dim" style={{ flex: 1 }}>
           Poids de corps
         </Text>
-        <CommitInput variant="big" numeric value={String(bodyWeight)} style={{ width: 84 }} accessibilityLabel="Poids de corps en kilos" onCommit={setDraft} onLiveChange={setDraft} />
+        <CommitInput variant="big" numeric value={u.toInput(String(bodyWeight))} style={{ width: 84 }} accessibilityLabel={`Poids de corps en ${u.unit === 'kg' ? 'kilos' : 'livres'}`} onCommit={setDraft} onLiveChange={setDraft} />
         <Text size={13} tone="dim">
-          kg
+          {u.unit}
         </Text>
         <Button label="OK" icon="check" variant="solid" small onPress={() => {
-            onSaveBodyWeight(draft ?? String(bodyWeight));
+            onSaveBodyWeight(u.fromInput(draft ?? u.toInput(String(bodyWeight))));
             setDraft(null);
           }} />
       </View>
@@ -51,12 +52,12 @@ export function PrCard({ rows, bodyWeight, onSaveBodyWeight }: Props) {
                 {row.name}
               </Text>
               <Text size={11} tone="muted" style={{ marginTop: 2 }}>
-                {`${row.record.date}${row.record.reps ? ` · ${row.record.reps} reps` : ''} · 1RM ~${fmtKg(row.oneRm)} kg`}
+                {`${row.record.date}${row.record.reps ? ` · ${row.record.reps} reps` : ''} · 1RM ~${u.withUnit(row.oneRm)}`}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text display size={22} color={colors.cYellow}>{`${fmtKg(row.record.weight)} kg`}</Text>
-              <Text size={10} color={colors.blue}>{`${fmtKg(row.bodyRatio)}× BW`}</Text>
+              <Text display size={22} color={colors.cYellow}>{u.withUnit(row.record.weight)}</Text>
+              <Text size={10} color={colors.blue}>{`${String(row.bodyRatio).replace('.', ',')}× BW`}</Text>
             </View>
           </View>
         ))

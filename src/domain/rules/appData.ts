@@ -4,6 +4,7 @@ import type {
   DateKey,
   ExDef,
   ExNote,
+  Equipment,
   Exercise,
   Goal,
   MuscleKey,
@@ -39,6 +40,7 @@ const KNOWN_KEYS = [
   'dayOrder',
   'skipped',
   'swaps',
+  'addedExercises',
   'sessionMeta',
   'readiness',
   'exNames',
@@ -65,6 +67,7 @@ export function emptyAppData(today: DateKey): AppData {
     dayOrder: {},
     skipped: {},
     swaps: {},
+    addedExercises: {},
     sessionMeta: {},
     readiness: {},
     exNames: {},
@@ -212,6 +215,29 @@ function readReminder(v: unknown): ReminderPrefs | undefined {
   };
 }
 
+/** Exercices ajoutés à la volée un jour donné : nettoyés, sans doublon d'identifiant ; liste vide ignorée. */
+function readAddedExercises(v: unknown): Exercise[] | null {
+  if (!Array.isArray(v)) return null;
+  const seen = new Set<string>();
+  const out: Exercise[] = [];
+  for (const raw of v) {
+    const ex = sanitizeExercise(raw);
+    if (ex && !seen.has(ex.id)) {
+      seen.add(ex.id);
+      out.push(ex);
+    }
+  }
+  return out.length ? out : null;
+}
+
+function readEquipment(v: unknown): Equipment | undefined {
+  if (!isRecord(v)) return undefined;
+  const plates = Array.isArray(v['plates'])
+    ? [...new Set(v['plates'].map((p) => boundedFloat(p, 0, 100, 0)).filter((p) => p > 0))].sort((a, b) => b - a).slice(0, 12)
+    : [];
+  return { bar: boundedFloat(v['bar'], 0, 100, 20), plates };
+}
+
 function readVolTargets(v: unknown): VolumeTargets | undefined {
   if (!isRecord(v)) return undefined;
   const out: VolumeTargets = {};
@@ -239,6 +265,16 @@ function readPrefs(v: unknown): Prefs {
   if (src['persistAsked']) prefs.persistAsked = true;
   const vol = readVolTargets(src['volTargets']);
   if (vol) prefs.volTargets = vol;
+  if (src['unit'] === 'kg' || src['unit'] === 'lb') prefs.unit = src['unit'];
+  if (src['theme'] === 'system' || src['theme'] === 'light' || src['theme'] === 'dark') prefs.theme = src['theme'];
+  if (isRecord(src['equipment'])) {
+    const equipment: NonNullable<Prefs['equipment']> = {};
+    for (const unit of ['kg', 'lb'] as const) {
+      const eq = readEquipment(src['equipment'][unit]);
+      if (eq) equipment[unit] = eq;
+    }
+    if (equipment.kg || equipment.lb) prefs.equipment = equipment;
+  }
   return prefs;
 }
 
@@ -300,6 +336,7 @@ export function normalizeAppData(raw: unknown, today: DateKey): AppData {
     swaps: byDate(src['swaps'], (day) =>
       isRecord(day) ? byId<Exercise>(day, (ex) => sanitizeExercise(ex)) : null,
     ),
+    addedExercises: byDate(src['addedExercises'], readAddedExercises),
     sessionMeta: byDate(src['sessionMeta'], readSessionMeta),
     readiness: byDate(src['readiness'], readReadiness),
     exNames: byId(src['exNames'], (v) => (typeof v === 'string' ? v : null)),

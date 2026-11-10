@@ -1,6 +1,6 @@
 import { View } from 'react-native';
-import { fmtInt } from '@/domain/format/numbers';
 import type { FunEquivalent } from '@/domain/types';
+import { useUnit } from '@/features/shared/useUnit';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
@@ -8,6 +8,7 @@ import { Text } from '@/ui/Text';
 
 export function TonnageCard({ tonnage, equivalent }: { tonnage: number; equivalent: FunEquivalent | null }) {
   const { colors } = useTheme();
+  const u = useUnit();
   if (tonnage <= 0) return null;
   return (
     <Card accent={colors.cRed}>
@@ -18,7 +19,7 @@ export function TonnageCard({ tonnage, equivalent }: { tonnage: number; equivale
             Tonnage d'aujourd'hui
           </Text>
           <Text display size={42} color={colors.red} style={{ lineHeight: 46, marginVertical: 4 }}>
-            {`${fmtInt(tonnage)} kg`}
+            {`${u.tonnageValue(tonnage)} ${u.unit}`}
           </Text>
           {equivalent ? (
             <Text size={12} tone="dim">

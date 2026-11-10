@@ -1,6 +1,7 @@
-import type { AppData, DateKey, Goal, GoalType } from '../types';
+import type { AppData, DateKey, Goal, GoalType, Unit } from '../types';
 import { dateToKey, dayNum, todayKey } from '../format/dates';
-import { fmtKg } from '../format/numbers';
+import { fmtMass } from '../format/units';
+import { getUnit } from './plates';
 import { findExName } from './program';
 
 export interface Point {
@@ -135,13 +136,13 @@ function addDaysFromNow(now: Date, days: number): number {
 const fmtDateFull = (d: DateKey): string =>
   new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function etaText(goal: Goal, eta: GoalEta, now: Date = new Date()): string {
+export function etaText(goal: Goal, eta: GoalEta, now: Date = new Date(), unit: Unit = 'kg'): string {
   switch (eta.kind) {
     case 'done':
       return `Atteint le ${fmtDateFull(goal.achievedAt ?? todayKey(now))}`;
     case 'date': {
       const delay = eta.days < 14 ? `dans ${eta.days} j` : `dans ${Math.round(eta.days / 7)} sem.`;
-      return `≈ ${fmtDateFull(eta.date)} · ${delay} · ${eta.rate > 0 ? '+' : '−'}${fmtKg(Math.abs(eta.rate))} kg/sem.`;
+      return `≈ ${fmtDateFull(eta.date)} · ${delay} · ${eta.rate > 0 ? '+' : '−'}${fmtMass(Math.abs(eta.rate), unit)} ${unit}/sem.`;
     }
     case 'far':
       return 'Au rythme actuel : plus de 2 ans';
@@ -168,10 +169,11 @@ export interface GoalRow {
 }
 
 export function buildGoalRows(data: AppData, now: Date = new Date()): GoalRow[] {
+  const unit = getUnit(data);
   return data.goals.map((goal) => {
     const progress = goalProgress(data, goal);
     const eta = goalEta(data, goal, progress, now);
-    return { goal, name: goalName(data, goal), progress, eta, etaText: etaText(goal, eta, now) };
+    return { goal, name: goalName(data, goal), progress, eta, etaText: etaText(goal, eta, now, unit) };
   });
 }
 

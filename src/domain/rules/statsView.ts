@@ -39,20 +39,22 @@ export interface LiftPoint {
   date: DateKey;
   max: number;
   avg: number;
+  /** 1RM estimé (Brzycki) : la meilleure série de la séance. */
+  oneRm: number;
 }
 
 /** Charge maximale et moyenne par séance pour un exercice. */
 export function liftHistory(data: AppData, exId: ExerciseId): LiftPoint[] {
   const out: LiftPoint[] = [];
   for (const date of Object.keys(data.workouts).sort() as DateKey[]) {
-    const weights = (data.workouts[date]?.[exId] ?? [])
-      .filter((s) => s.done && toNumber(s.weight) > 0)
-      .map((s) => toNumber(s.weight));
+    const sets = (data.workouts[date]?.[exId] ?? []).filter((s) => s.done && toNumber(s.weight) > 0);
+    const weights = sets.map((s) => toNumber(s.weight));
     if (weights.length) {
       out.push({
         date,
         max: Math.max(...weights),
         avg: Math.round((weights.reduce((a, b) => a + b, 0) / weights.length) * 10) / 10,
+        oneRm: Math.max(...sets.map((s) => calc1RM(s.weight, toNumber(s.reps) || 10))),
       });
     }
   }
@@ -217,4 +219,54 @@ export function weightPoints(data: AppData, range: WeightRange, now: Date = new 
   if (range === 'all') return data.weightLog;
   const from = addDays(todayKey(now), -parseInt(range, 10));
   return data.weightLog.filter((e) => e.date >= from);
+}
+
+/* ------------------------------------------------------------------ */
+/* Frise des records                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface PrEvent {
+  date: DateKey;
+  id: ExerciseId;
+  name: string;
+  weight: number;
+  reps: number;
+  oneRm: number;
+}
+
+export interface PrMonth {
+  /** `AAAA-MM` */
+  key: string;
+  label: string;
+  events: PrEvent[];
+}
+
+/** Records battus au fil des séances (les plus récents d'abord), regroupés par mois. */
+export function buildPrTimeline(data: AppData, limit = 60): PrMonth[] {
+  const events: PrEvent[] = [];
+  for (const date of Object.keys(data.sessionMeta) as DateKey[]) {
+    for (const pr of data.sessionMeta[date]?.prs ?? []) {
+      events.push({
+        date,
+        id: pr.id,
+        name: pr.name || findExName(data, pr.id),
+        weight: pr.w,
+        reps: pr.r,
+        oneRm: pr.r > 1 ? calc1RM(pr.w, pr.r) : pr.w,
+      });
+    }
+  }
+  events.sort((a, b) => (a.date === b.date ? b.weight - a.weight : a.date < b.date ? 1 : -1));
+
+  const months: PrMonth[] = [];
+  for (const event of events.slice(0, limit)) {
+    const key = event.date.slice(0, 7);
+    let month = months[months.length - 1];
+    if (!month || month.key !== key) {
+      month = { key, label: new Date(`${key}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }), events: [] };
+      months.push(month);
+    }
+    month.events.push(event);
+  }
+  return months;
 }

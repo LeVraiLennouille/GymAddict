@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { fmtWeekdayDayMonth } from '@/domain/format/dates';
-import { fmtInt } from '@/domain/format/numbers';
+import { useUnit } from '@/features/shared/useUnit';
 import type { RestDayInfo } from '@/domain/rules/restDay';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Button } from '@/ui/Button';
@@ -36,6 +36,7 @@ function Row({ label, title, sub }: { label: string; title: string; sub: string 
 
 export function RestDayView({ info, streak, regularity, onChooseProgram }: Props) {
   const { colors } = useTheme();
+  const u = useUnit();
   return (
     <View>
       <View style={{ alignItems: 'center', paddingTop: 28, paddingBottom: 18, paddingHorizontal: 20 }}>
@@ -59,7 +60,7 @@ export function RestDayView({ info, streak, regularity, onChooseProgram }: Props
             <Row
               label="Dernière séance"
               title={info.last.name}
-              sub={`${fmtWeekdayDayMonth(info.last.date)}${info.last.tonnage ? ` · ${fmtInt(info.last.tonnage)} kg` : ''}`}
+              sub={`${fmtWeekdayDayMonth(info.last.date)}${info.last.tonnage ? ` · ${u.tonnage(info.last.tonnage)}` : ''}`}
             />
           ) : null}
         </Card>

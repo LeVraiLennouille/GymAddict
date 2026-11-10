@@ -16,7 +16,8 @@ import type {
 import { toNumber } from '../format/numbers';
 import { getFunEquivalent } from './funEquivalent';
 import { getProgressionSuggestion } from './progression';
-import { getEffectiveDayProgram, orderedExercises } from './program';
+import { getUnit } from './plates';
+import { getEffectiveDayProgram, isAddedExercise, orderedExercises } from './program';
 import { getDayProgress, getLastSession, getSet, getTonnageFor, isSkipped, topSet } from './sets';
 
 export interface SetView {
@@ -32,6 +33,8 @@ export interface SetView {
 export interface ExerciseView {
   exercise: Exercise;
   skipped: boolean;
+  /** Ajouté à la volée à cette séance (pas dans le programme). */
+  added: boolean;
   doneSets: number;
   complete: boolean;
   /** Exercice (ou superset) à faire maintenant. */
@@ -67,14 +70,14 @@ function buildExerciseView(data: AppData, date: DateKey, ex: Exercise): Omit<Exe
   const skipped = isSkipped(data, date, ex.id);
   if (skipped) {
     return {
-      exercise: ex, skipped, doneSets: 0, complete: false, record, last: null, lastTop: null,
+      exercise: ex, skipped, added: isAddedExercise(data, date, ex.id), doneSets: 0, complete: false, record, last: null, lastTop: null,
       suggestion: null, suggestionApplied: false, sets: [], note,
     };
   }
 
   const last = getLastSession(data, ex.id, date);
   const lastTop = last ? topSet(last.sets) : null;
-  const suggestion = getProgressionSuggestion(ex, last);
+  const suggestion = getProgressionSuggestion(ex, last, getUnit(data));
 
   const sets: SetView[] = [];
   let doneSets = 0;
@@ -109,6 +112,7 @@ function buildExerciseView(data: AppData, date: DateKey, ex: Exercise): Omit<Exe
   return {
     exercise: ex,
     skipped,
+    added: isAddedExercise(data, date, ex.id),
     doneSets,
     complete: ex.sets > 0 && doneSets === ex.sets,
     record,

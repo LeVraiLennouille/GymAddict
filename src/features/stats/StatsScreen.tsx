@@ -13,6 +13,7 @@ import { GoalsCard } from './components/GoalsCard';
 import { Heatmap } from './components/Heatmap';
 import { LoadsCard } from './components/LoadsCard';
 import { PrCard } from './components/PrCard';
+import { PrTimelineCard } from './components/PrTimelineCard';
 import { VolumeCard } from './components/VolumeCard';
 import { WeightCard } from './components/WeightCard';
 import { useStats } from './hooks/useStats';
@@ -75,6 +76,7 @@ export function StatsScreen() {
 
         <VolumeCard onSave={stats.actions.saveVolumeTargets} onReset={stats.actions.resetVolumeTargets} />
         <WeightCard onAdd={stats.actions.addWeight} onDelete={stats.actions.deleteWeight} />
+        <PrTimelineCard />
         <PrCard rows={stats.prs} bodyWeight={stats.bodyWeight} onSaveBodyWeight={stats.actions.saveBodyWeight} />
       </View>
     </ScrollView>

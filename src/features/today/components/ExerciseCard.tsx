@@ -1,6 +1,7 @@
 import { Pressable, View, type LayoutChangeEvent } from 'react-native';
 import { fmtWeekdayShort } from '@/domain/format/dates';
-import { fmtKg, fmtRest } from '@/domain/format/numbers';
+import { fmtRest } from '@/domain/format/numbers';
+import { useUnit } from '@/features/shared/useUnit';
 import type { ExerciseView } from '@/domain/rules/todayView';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Badge } from '@/ui/Badge';
@@ -11,6 +12,7 @@ import { Icon } from '@/ui/Icon';
 import { Text } from '@/ui/Text';
 import type { TodayActions } from '../hooks/useTodaySession';
 import { ProgressionHint } from './ProgressionHint';
+import type { SetView } from '@/domain/rules/todayView';
 import { SetRow } from './SetRow';
 
 interface Props {
@@ -23,6 +25,9 @@ interface Props {
   onToggleOpen: () => void;
   onOpenWarmup: () => void;
   onOpenSwap: () => void;
+  onOpenPlates: () => void;
+  onOpenSetTimer: (set: SetView) => void;
+  onRemove: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
 }
 
@@ -41,12 +46,14 @@ function ExerciseBadges({ item }: { item: ExerciseView }) {
         <Badge kind="isolation" label={`Isolation · ${rest}`} />
       )}
       {ex.optional ? <Badge kind="neutral" label="Optionnel" /> : null}
+      {item.added ? <Badge kind="suggestion" label="Ajouté" /> : null}
     </>
   );
 }
 
-export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenWarmup, onOpenSwap, onLayout }: Props) {
+export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenWarmup, onOpenSwap, onOpenPlates, onOpenSetTimer, onRemove, onLayout }: Props) {
   const { colors } = useTheme();
+  const u = useUnit();
   const ex = item.exercise;
 
   if (item.skipped) {
@@ -72,7 +79,7 @@ export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenW
   const lastTopText = (() => {
     if (!item.last || !item.lastTop) return null;
     const t = item.lastTop;
-    const value = t.w > 0 ? `${fmtKg(t.w)} kg × ${t.r}${ex.isTime ? ' s' : ''}` : `${t.r}${ex.isTime ? ' s' : ' reps'}`;
+    const value = t.w > 0 ? `${u.withUnit(t.w)} × ${t.r}${ex.isTime ? ' s' : ''}` : `${t.r}${ex.isTime ? ' s' : ' reps'}`;
     return { when: fmtWeekdayShort(item.last.date), value, count: item.last.sets.length };
   })();
 
@@ -105,7 +112,8 @@ export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenW
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
               <Button small label="Passer à la fin" onPress={() => actions.postpone(ex)} />
               {item.doneSets === 0 ? <Button small label="Sauter" onPress={() => actions.skip(ex, true)} /> : null}
-              {item.doneSets === 0 ? <Button small label="Remplacer" onPress={onOpenSwap} /> : null}
+              {item.doneSets === 0 && !item.added ? <Button small label="Remplacer" onPress={onOpenSwap} /> : null}
+              {item.doneSets === 0 && item.added ? <Button small variant="ghost" label="Retirer" onPress={onRemove} /> : null}
             </View>
           ) : null}
 
@@ -127,7 +135,7 @@ export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenW
               <>
                 {' · PR : '}
                 <Text size={12} weight={700} color={colors.orange}>
-                  {`${fmtKg(item.record.weight)}kg × ${item.record.reps}reps`}
+                  {`${u.withUnit(item.record.weight)} × ${item.record.reps}reps`}
                 </Text>
               </>
             ) : null}
@@ -162,6 +170,7 @@ export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenW
                 onToggle={() => actions.toggleSet(ex, set)}
                 onCommitWeight={(text) => actions.commitWeight(ex, set.index, text)}
                 onCommitReps={(text) => actions.commitReps(ex, set.index, text)}
+                onOpenTimer={ex.isTime ? () => onOpenSetTimer(set) : undefined}
               />
             ))}
           </View>
@@ -175,7 +184,7 @@ export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenW
               commitDelayMs={600}
               onCommit={(text) => actions.commitSetting(ex, text)}
             />
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
               <View style={{ width: 64, gap: 3 }}>
                 <Text size={10} weight={600} tone="muted" align="center">
                   RPE /10
@@ -191,6 +200,7 @@ export function ExerciseCard({ item, color, open, actions, onToggleOpen, onOpenW
                 />
               </View>
               {ex.isTime ? null : <Button small label="Échauffement" color={colors.cYellow} onPress={onOpenWarmup} />}
+              {ex.isTime ? null : <Button small label="Disques" icon="dumbbell" onPress={onOpenPlates} />}
             </View>
           </View>
         </View>

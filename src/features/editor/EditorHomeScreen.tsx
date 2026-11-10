@@ -49,6 +49,14 @@ export function EditorHomeScreen() {
 
   return (
     <EditorShell title="Mon programme" subtitle={customized ? 'Personnalisé' : 'Programme par défaut'} fallback="/week">
+      <Card accent={colors.cYellow}>
+        <SectionTitle flush>Programmes prêts à l'emploi</SectionTitle>
+        <Text size={13} tone="dim" style={{ marginTop: -4, marginBottom: 12, lineHeight: 20 }}>
+          Push / Pull / Legs, haut et bas du corps, 5×5, full body : importe-en un en un clic, puis adapte-le.
+        </Text>
+        <Button label="Parcourir la bibliothèque" variant="solid" onPress={() => router.push('/editor/templates')} />
+      </Card>
+
       <Card>
         <SectionTitle flush>Semaine type</SectionTitle>
         <Text size={12} tone="dim" style={{ marginTop: -4, marginBottom: 12, lineHeight: 18 }}>

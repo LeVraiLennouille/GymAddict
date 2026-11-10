@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useAppStore } from '@/data/store/appStore';
 import { fmtDateShort } from '@/domain/format/dates';
-import { fmtKg } from '@/domain/format/numbers';
+import { useUnit } from '@/features/shared/useUnit';
 import { barChartGeometry, lineChartGeometry } from '@/domain/rules/charts';
 import { liftHistory, weeklyTonnageHistory } from '@/domain/rules/statsView';
 import type { ExerciseId } from '@/domain/types';
@@ -13,17 +13,19 @@ import { SelectField } from '@/ui/SelectField';
 import { Text } from '@/ui/Text';
 import { BarChart, LineChart } from './Charts';
 
-type Mode = 'max' | 'avg' | 'tonnage';
+type Mode = 'max' | 'avg' | 'oneRm' | 'tonnage';
 
 const MODES: readonly { mode: Mode; label: string }[] = [
   { mode: 'max', label: 'Max' },
   { mode: 'avg', label: 'Moy' },
+  { mode: 'oneRm', label: '1RM' },
   { mode: 'tonnage', label: 'Tonnage' },
 ];
 
 /** Évolution d'un exercice : charge max, charge moyenne ou tonnage hebdomadaire. */
 export function LoadsCard({ exercises }: { exercises: { id: ExerciseId; name: string }[] }) {
   const data = useAppStore((s) => s.data);
+  const u = useUnit();
   const [mode, setMode] = useState<Mode>('max');
   const [picked, setPicked] = useState<ExerciseId | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
@@ -36,17 +38,18 @@ export function LoadsCard({ exercises }: { exercises: { id: ExerciseId; name: st
       const weeks = weeklyTonnageHistory(data, exId);
       return {
         kind: 'bar' as const,
-        series: weeks.map((w) => ({ key: w.week, value: w.tonnage })),
-        reads: weeks.map((w) => `${Math.round(w.tonnage).toLocaleString('fr-FR')} kg·reps · semaine du ${fmtDateShort(w.week)}`),
+        series: weeks.map((w) => ({ key: w.week, value: u.convert(w.tonnage) })),
+        reads: weeks.map((w) => `${Math.round(u.convert(w.tonnage)).toLocaleString('fr-FR')} ${u.unit}·reps · semaine du ${fmtDateShort(w.week)}`),
       };
     }
     const points = liftHistory(data, exId);
+    const pick = (p: (typeof points)[number]): number => (mode === 'max' ? p.max : mode === 'avg' ? p.avg : p.oneRm);
     return {
       kind: 'line' as const,
-      series: points.map((p) => ({ key: p.date, value: mode === 'max' ? p.max : p.avg })),
-      reads: points.map((p) => `${fmtKg(mode === 'max' ? p.max : p.avg)} kg · ${fmtDateShort(p.date)}`),
+      series: points.map((p) => ({ key: p.date, value: u.convert(pick(p)) })),
+      reads: points.map((p) => `${mode === 'oneRm' ? '1RM ~' : ''}${u.withUnit(pick(p))} · ${fmtDateShort(p.date)}`),
     };
-  }, [data, exId, mode]);
+  }, [data, exId, mode, u]);
 
   const select = (i: number): void => setSelected(i);
   const reading = selected !== null ? view.reads[selected] : undefined;

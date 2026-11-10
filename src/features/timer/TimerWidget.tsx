@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/data/store/appStore';
@@ -7,18 +8,22 @@ import { fmtClock } from '@/domain/format/numbers';
 import { playGo, playTick, vibrate } from '@/services/feedback';
 import { remainingSeconds, useTimerStore } from '@/services/timerStore';
 import { useTheme } from '@/theme/ThemeProvider';
+import { USE_NATIVE_DRIVER } from '@/ui/animation';
 import { Icon } from '@/ui/Icon';
 import { Text } from '@/ui/Text';
-import { USE_NATIVE_DRIVER } from '@/ui/animation';
 
 const KEEP_AWAKE_TAG = 'rest-timer';
 const URGENT_SECONDS = 10;
+const RING = 58;
+const RING_RADIUS = 24;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
-/** Minuteur de repos flottant, visible sur tous les onglets. */
+/** Minuteur de repos flottant : capsule sombre avec un anneau qui se vide, visible sur tous les onglets. */
 export function TimerWidget() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const endAt = useTimerStore((s) => s.endAt);
+  const totalSec = useTimerStore((s) => s.totalSec);
   const label = useTimerStore((s) => s.label);
   const add = useTimerStore((s) => s.add);
   const dismiss = useTimerStore((s) => s.dismiss);
@@ -62,10 +67,11 @@ export function TimerWidget() {
   }, [endAt]);
 
   const visible = endAt !== null;
-  // Avant le premier tick, on calcule tout de suite le temps restant (évite un flash « 0:00 » rouge).
+  // Avant le premier tick, on calcule tout de suite le temps restant (évite un flash « 0:00 »).
   const shown = endAt !== null && remaining === 0 ? remainingSeconds(endAt) : remaining;
   const urgent = shown <= URGENT_SECONDS;
-  const bg = urgent ? colors.cRed : colors.cBlue;
+  const ringColor = urgent ? colors.red : colors.cBlue;
+  const share = totalSec > 0 ? Math.max(0, Math.min(1, shown / totalSec)) : 0;
 
   return (
     <View
@@ -75,40 +81,55 @@ export function TimerWidget() {
         accessibilityLiveRegion="none"
         style={{
           transform: [{ translateY: slide }],
-          backgroundColor: bg,
+          backgroundColor: colors.navBg,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
           borderRadius: 99,
-          paddingVertical: 10,
-          paddingLeft: 22,
-          paddingRight: 12,
+          paddingVertical: 8,
+          paddingLeft: 8,
+          paddingRight: 10,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 14,
+          gap: 12,
           maxWidth: '100%',
         }}
       >
-        <Text
-          display
-          size={36}
-          color="#FFFFFF"
-          accessibilityLabel={`Repos, ${shown} secondes restantes`}
-          style={{ minWidth: 76, textAlign: 'center', lineHeight: 40 }}
-        >
-          {fmtClock(shown)}
-        </Text>
-        <View style={{ flexShrink: 1 }}>
-          <Text size={11} color="rgba(255,255,255,0.8)">
+        <View style={{ width: RING, height: RING, alignItems: 'center', justifyContent: 'center' }} accessible accessibilityLabel={`Repos, ${shown} secondes restantes`}>
+          <Svg width={RING} height={RING} viewBox={`0 0 ${RING} ${RING}`} style={{ position: 'absolute' }}>
+            <Circle cx={RING / 2} cy={RING / 2} r={RING_RADIUS} stroke="rgba(255,255,255,0.12)" strokeWidth={5} fill="none" />
+            <Circle
+              cx={RING / 2}
+              cy={RING / 2}
+              r={RING_RADIUS}
+              stroke={ringColor}
+              strokeWidth={5}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${RING_LENGTH}`}
+              strokeDashoffset={RING_LENGTH * (1 - share)}
+              transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+            />
+          </Svg>
+          <Text display size={17} color="#FFFFFF">
+            {fmtClock(shown)}
+          </Text>
+        </View>
+
+        <View style={{ flexShrink: 1, minWidth: 70 }}>
+          <Text size={11} color="#8C93A1">
             Temps de repos
           </Text>
           <Text size={13} weight={700} color="#FFFFFF" numberOfLines={1}>
             {label}
           </Text>
         </View>
+
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ajouter 30 secondes"
             onPress={() => add(30)}
-            style={{ minHeight: 40, minWidth: 44, borderRadius: 99, paddingHorizontal: 14, backgroundColor: 'rgba(0,0,0,0.22)', alignItems: 'center', justifyContent: 'center' }}
+            style={{ minHeight: 40, minWidth: 48, borderRadius: 99, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
           >
             <Text size={13} weight={700} color="#FFFFFF">
               +30s
@@ -118,7 +139,7 @@ export function TimerWidget() {
             accessibilityRole="button"
             accessibilityLabel="Fermer le minuteur"
             onPress={dismiss}
-            style={{ minHeight: 40, minWidth: 44, borderRadius: 99, backgroundColor: 'rgba(0,0,0,0.22)', alignItems: 'center', justifyContent: 'center' }}
+            style={{ minHeight: 40, minWidth: 44, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
           >
             <Icon name="close" size={18} color="#FFFFFF" />
           </Pressable>

@@ -13,6 +13,7 @@ import { getBodyWeight } from '@/domain/rules/profile';
 import { computeRegularity, computeStreak } from '@/domain/rules/streak';
 import { allExercises, buildHeatmap, buildPrList, muscleVolumes, type HeatWeek, type PrRow } from '@/domain/rules/statsView';
 import type { DateKey, ExerciseId, MuscleKey } from '@/domain/types';
+import { useUnit } from '@/features/shared/useUnit';
 import { showToast } from '@/ui/feedbackStore';
 import { checkGoals } from '../checkGoals';
 
@@ -42,6 +43,7 @@ export function useStats(): StatsModel {
   const data = useAppStore((s) => s.data);
   const update = useAppStore((s) => s.update);
   const today = useTodayKey();
+  const u = useUnit();
 
   const heatmap = useMemo(() => buildHeatmap(data), [data, today]);
   const radar = useMemo(() => radarGeometry(muscleVolumes(data), MUSCLE_KEYS.map((m) => MUSCLE_LABELS[m])), [data, today]);
@@ -93,7 +95,7 @@ export function useStats(): StatsModel {
       saveBodyWeight: (raw) => {
         const result = saveBodyWeightEntry(useAppStore.getState().data, raw, today);
         if (!result.ok) {
-          showToast('Poids invalide (20 à 300 kg)');
+          showToast(`Poids invalide (${u.num(20)} à ${u.num(300)} ${u.unit})`);
           return;
         }
         update(() => result.data);

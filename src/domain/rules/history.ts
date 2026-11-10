@@ -1,5 +1,7 @@
-import type { AppData, DateKey, ProgramColor, RunLog } from '../types';
-import { fmtKg, fmtPace, fmtTonnage } from '../format/numbers';
+import type { AppData, DateKey, ProgramColor, RunLog, Unit } from '../types';
+import { fmtPace } from '../format/numbers';
+import { fmtMass, fmtTonnageIn } from '../format/units';
+import { getUnit } from './plates';
 import { runPaceSec } from './runs';
 import { sessionSummary, type SessionSummary } from './summary';
 import { getProgramConfig } from './program';
@@ -60,6 +62,7 @@ export interface HistoryMonth {
 }
 
 export function buildHistory(data: AppData): HistoryMonth[] {
+  const unit = getUnit(data);
   const months: HistoryMonth[] = [];
   for (const date of sessionDates(data)) {
     const key = date.slice(0, 7);
@@ -80,7 +83,7 @@ export function buildHistory(data: AppData): HistoryMonth[] {
     const meta: string[] = [];
     if (s.exercises.length) {
       meta.push(`${s.exercises.length} exo${s.exercises.length > 1 ? 's' : ''}`, `${s.sets} séries`);
-      if (s.tonnage > 0) meta.push(fmtTonnage(s.tonnage));
+      if (s.tonnage > 0) meta.push(fmtTonnageIn(s.tonnage, unit));
       if (s.minutes) meta.push(`${s.minutes} min`);
       if (s.prs.length) meta.push(`${s.prs.length} PR`);
       if (s.note) meta.push('note');
@@ -118,9 +121,9 @@ export function tonnageDelta(data: AppData, date: DateKey, s: SessionSummary): {
   return { pct: Math.round(((s.tonnage - prev.tonnage) / prev.tonnage) * 100), since: prev.date };
 }
 
-export const fmtSetLine = (weight: string, reps: string, isTime: boolean): string => {
+export const fmtSetLine = (weight: string, reps: string, isTime: boolean, unit: Unit = 'kg'): string => {
   const w = parseFloat(weight.replace(',', '.')) || 0;
   const r = reps || '—';
-  if (isTime) return w > 0 ? `${fmtKg(w)} kg × ${r} s` : `${r} s`;
-  return w > 0 ? `${fmtKg(w)} kg × ${r}` : `${r} reps`;
+  if (isTime) return w > 0 ? `${fmtMass(w, unit)} ${unit} × ${r} s` : `${r} s`;
+  return w > 0 ? `${fmtMass(w, unit)} ${unit} × ${r}` : `${r} reps`;
 };

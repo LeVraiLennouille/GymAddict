@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { ALL_MUSCLE_KEYS, EXERCISE_TYPES, EXERCISE_TYPE_LABELS, MUSCLE_LABELS } from '@/domain/defaults/constants';
 import type { ExercisePatch } from '@/domain/actions/program';
 import { exRepFields } from '@/domain/rules/progression';
+import { useUnit } from '@/features/shared/useUnit';
 import type { Exercise, SupersetGroup } from '@/domain/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Button } from '@/ui/Button';
@@ -49,6 +50,7 @@ function RoundButton({ icon, label, onPress, disabled }: { icon: 'up' | 'down' |
 /** Édition complète d'un exercice du programme. */
 export function ExerciseEditor({ exercise: ex, isFirst, isLast, onPatch, onMove, onDelete }: Props) {
   const { colors } = useTheme();
+  const u = useUnit();
   const reps = exRepFields(ex);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [open, setOpen] = useState(false);
@@ -146,14 +148,17 @@ export function ExerciseEditor({ exercise: ex, isFirst, isLast, onPatch, onMove,
             ))}
           </View>
 
-          <Label>INCRÉMENT DE CHARGE (KG, VIDE = 2,5)</Label>
+          <Label>{`INCRÉMENT DE CHARGE (${u.unit.toUpperCase()}, VIDE = ${u.unit === 'kg' ? '2,5' : '5'})`}</Label>
           <CommitInput
             numeric
-            value={ex.step ? String(ex.step).replace('.', ',') : ''}
-            placeholder="2,5"
+            value={ex.step ? u.num(ex.step) : ''}
+            placeholder={u.unit === 'kg' ? '2,5' : '5'}
             style={{ width: 110 }}
             accessibilityLabel="Incrément de charge"
-            onCommit={(t) => onPatch({ step: parseFloat(t.replace(',', '.')) || null })}
+            onCommit={(t) => {
+              const n = parseFloat(t.replace(',', '.'));
+              onPatch({ step: n > 0 ? u.toKg(n) : null });
+            }}
           />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20 }}>

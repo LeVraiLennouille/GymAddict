@@ -6,7 +6,8 @@ import { useAppStore } from '@/data/store/appStore';
 import { duplicateSession, type DuplicateError } from '@/domain/actions/history';
 import { saveSessionNote } from '@/domain/actions/workout';
 import { fmtDateLong, todayKey } from '@/domain/format/dates';
-import { fmtDuration, fmtInt, fmtKg } from '@/domain/format/numbers';
+import { fmtDuration } from '@/domain/format/numbers';
+import { useUnit } from '@/features/shared/useUnit';
 import { getFunEquivalent } from '@/domain/rules/funEquivalent';
 import { fmtSetLine, runLogLine, tonnageDelta } from '@/domain/rules/history';
 import { sessionSummary } from '@/domain/rules/summary';
@@ -39,6 +40,7 @@ export function SummaryScreen({ date, mode }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const u = useUnit();
   const data = useAppStore((s) => s.data);
   const update = useAppStore((s) => s.update);
   const summary = useMemo(() => sessionSummary(data, date), [data, date]);
@@ -99,7 +101,7 @@ export function SummaryScreen({ date, mode }: Props) {
             <>
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
                 <StatCard value={String(summary.sets)} label="Séries" color={colors.cBlue} />
-                <StatCard value={summary.tonnage ? fmtInt(summary.tonnage) : '0'} label="Kg soulevés" color={colors.cRed} />
+                <StatCard value={summary.tonnage ? u.tonnageValue(summary.tonnage) : '0'} label={`${u.unit === 'kg' ? 'Kg' : 'Lb'} soulevés`} color={colors.cRed} />
               </View>
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
                 <StatCard value={summary.minutes ? fmtDuration(summary.minutes) : '—'} label="Durée active" color={colors.cGreen} />
@@ -128,7 +130,7 @@ export function SummaryScreen({ date, mode }: Props) {
                     <Text weight={700} size={14} style={{ flex: 1 }}>
                       {pr.name}
                     </Text>
-                    <Text display size={18}>{`${fmtKg(pr.w)} kg × ${pr.r}`}</Text>
+                    <Text display size={18}>{`${u.withUnit(pr.w)} × ${pr.r}`}</Text>
                   </View>
                 ))}
               </Card>
@@ -162,7 +164,7 @@ export function SummaryScreen({ date, mode }: Props) {
                 {ex.sets.map((s, i) => (
                   <View key={i} style={{ backgroundColor: colors.card2, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10 }}>
                     <Text size={12} weight={600}>
-                      {fmtSetLine(s.weight, s.reps, Boolean(ex.def?.isTime))}
+                      {fmtSetLine(s.weight, s.reps, Boolean(ex.def?.isTime), u.unit)}
                     </Text>
                   </View>
                 ))}

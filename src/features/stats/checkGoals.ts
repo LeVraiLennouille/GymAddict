@@ -1,7 +1,8 @@
 import { useAppStore } from '@/data/store/appStore';
 import { checkGoalsAchieved } from '@/domain/actions/goals';
 import { todayKey } from '@/domain/format/dates';
-import { fmtKg } from '@/domain/format/numbers';
+import { fmtMassUnit } from '@/domain/format/units';
+import { getUnit } from '@/domain/rules/plates';
 import { goalName } from '@/domain/rules/goals';
 import { showToast } from '@/ui/feedbackStore';
 
@@ -12,6 +13,6 @@ export function checkGoals(): void {
   if (!result.achieved.length) return;
   update(() => result.data);
   for (const goal of result.achieved) {
-    showToast(`Objectif atteint : ${goalName(data, goal)} ${fmtKg(goal.target)} kg !`);
+    showToast(`Objectif atteint : ${goalName(data, goal)} ${fmtMassUnit(goal.target, getUnit(data))} !`);
   }
 }

@@ -9,6 +9,7 @@ import { getAge } from '@/domain/rules/zones';
 import type { AvatarKey, Prefs, Profile } from '@/domain/types';
 import { testAlert } from '@/services/feedback';
 import { useTimerStore } from '@/services/timerStore';
+import { useUnit } from '@/features/shared/useUnit';
 import { showToast } from '@/ui/feedbackStore';
 
 export interface ProfileModel {
@@ -33,6 +34,7 @@ export function useProfile(): ProfileModel {
   const data = useAppStore((s) => s.data);
   const update = useAppStore((s) => s.update);
   const today = useTodayKey();
+  const u = useUnit();
 
   const stats = useMemo(() => buildProfileStats(data), [data, today]);
 
@@ -49,7 +51,7 @@ export function useProfile(): ProfileModel {
       saveBodyWeight: (raw) => {
         const result = saveBodyWeightEntry(useAppStore.getState().data, raw, today);
         if (!result.ok) {
-          showToast('Poids invalide (20 à 300 kg)');
+          showToast(`Poids invalide (${u.num(20)} à ${u.num(300)} ${u.unit})`);
           return;
         }
         update(() => result.data);

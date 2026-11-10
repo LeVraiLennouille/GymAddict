@@ -1,8 +1,8 @@
 import { View } from 'react-native';
-import { fmtKg } from '@/domain/format/numbers';
 import { calc1RM } from '@/domain/rules/oneRepMax';
 import { getWarmupSets } from '@/domain/rules/warmup';
 import type { Exercise, PersonalRecord } from '@/domain/types';
+import { useUnit } from '@/features/shared/useUnit';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Sheet } from '@/ui/Sheet';
 import { Text } from '@/ui/Text';
@@ -16,6 +16,7 @@ interface Props {
 /** Montée en charge basée sur le record personnel de l'exercice. */
 export function WarmupSheet({ exercise, record, onClose }: Props) {
   const { colors } = useTheme();
+  const u = useUnit();
   const sets = getWarmupSets(record?.weight ?? 0);
   const oneRm = record && record.reps ? calc1RM(record.weight, record.reps) : 0;
 
@@ -26,7 +27,7 @@ export function WarmupSheet({ exercise, record, onClose }: Props) {
       </Text>
       {record ? (
         <Text size={12} tone="dim" style={{ marginTop: 4, marginBottom: 14 }}>
-          {`Record : ${fmtKg(record.weight)} kg × ${record.reps}${oneRm ? ` · 1RM estimé ${fmtKg(oneRm)} kg` : ''}`}
+          {`Record : ${u.withUnit(record.weight)} × ${record.reps}${oneRm ? ` · 1RM estimé ${u.withUnit(oneRm)}` : ''}`}
         </Text>
       ) : null}
 
@@ -50,7 +51,7 @@ export function WarmupSheet({ exercise, record, onClose }: Props) {
               <Text size={12} tone="dim">{`${s.reps} reps · ${s.pct}%`}</Text>
             </View>
             <Text display size={20} color="#FFFFFF">
-              {`${fmtKg(s.weight)} kg`}
+              {u.withUnit(s.weight)}
             </Text>
           </View>
         ))

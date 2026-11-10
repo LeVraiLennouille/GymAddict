@@ -30,7 +30,7 @@ export function doneSetCount(data: AppData, date: DateKey, ex: Exercise): number
 
 export function getDayProgress(data: AppData, date: DateKey): DayProgress {
   const { prog } = getEffectiveDayProgram(data, date);
-  if (prog.type === 'rest' || prog.exercises.length === 0) return { done: 0, total: 0, pct: 0 };
+  if (prog.type === 'rest') return { done: 0, total: 0, pct: 0 };
   let total = 0;
   let done = 0;
   for (const ex of dayExercises(data, date, prog)) {

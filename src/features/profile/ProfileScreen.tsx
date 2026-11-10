@@ -19,6 +19,8 @@ import { Text } from '@/ui/Text';
 import { BackupCard } from '@/features/backup/BackupCard';
 import { RemindersCard } from '@/features/reminders/RemindersCard';
 import { DiagnosticCard } from './DiagnosticCard';
+import { AppearanceCard, EquipmentCard } from './PreferencesCards';
+import { useUnit } from '@/features/shared/useUnit';
 import { useProfile } from './hooks/useProfile';
 
 function PrefRow({
@@ -104,6 +106,7 @@ function ValueRow({
 /** Onglet « Profil » : identité, statistiques globales, données personnelles, minuteur, réinitialisation. */
 export function ProfileScreen() {
   const { colors } = useTheme();
+  const u = useUnit();
   const { profile, stats, bodyWeight, age, prefs, actions } = useProfile();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -180,8 +183,8 @@ export function ProfileScreen() {
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
             <StatCard value={`${stats.regularity}%`} label="Régularité 7j" color={colors.cYellow} />
             <StatCard
-              value={stats.tonnage > 0 ? `${(stats.tonnage / 1000).toFixed(1).replace('.', ',')}t` : '—'}
-              label="Tonnage total"
+              value={stats.tonnage > 0 ? `${(Math.round(u.convert(stats.tonnage)) / 1000).toFixed(1).replace('.', ',')}${u.unit === 'kg' ? 't' : 'k'}` : '—'}
+              label={u.unit === 'kg' ? 'Tonnage total' : 'Tonnage total (lb)'}
               color={colors.cGreen}
             />
           </View>
@@ -202,9 +205,15 @@ export function ProfileScreen() {
 
           <SectionTitle>Mes données</SectionTitle>
           <Card>
-            <ValueRow label="Poids de corps" unit="kg" value={String(bodyWeight)} onSave={actions.saveBodyWeight} />
+            <ValueRow label="Poids de corps" unit={u.unit} value={u.toInput(String(bodyWeight))} onSave={(raw) => actions.saveBodyWeight(u.fromInput(raw))} />
             <ValueRow label="Âge" unit="ans" integer value={String(age)} onSave={actions.saveAge} />
           </Card>
+
+          <SectionTitle>Apparence et unités</SectionTitle>
+          <AppearanceCard />
+
+          <SectionTitle>Matériel</SectionTitle>
+          <EquipmentCard />
 
           <SectionTitle>Minuteur de repos</SectionTitle>
           <Card>

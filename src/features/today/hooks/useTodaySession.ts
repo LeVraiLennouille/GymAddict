@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/data/store/appStore';
 import { useTodayKey } from '@/data/store/useTodayKey';
+import { addDayExercise, removeDayExercise } from '@/domain/actions/exercises';
 import {
   applyProgressionWeight,
   applySwap,
@@ -25,9 +26,18 @@ import { getDayProgress, getSet, isNewRecord } from '@/domain/rules/sets';
 import { restDayInfo, type RestDayInfo } from '@/domain/rules/restDay';
 import { computeRegularity, computeStreak } from '@/domain/rules/streak';
 import { supersetNext, supersetRest } from '@/domain/rules/supersets';
-import { buildSwapDef, findKnownByName, swapCandidates, type SwapTarget } from '@/domain/rules/swap';
+import {
+  buildSwapDef,
+  customExercise,
+  exerciseLibrary,
+  exerciseTemplate,
+  findKnownByName,
+  swapCandidates,
+  type LibraryItem,
+  type SwapTarget,
+} from '@/domain/rules/swap';
 import { normName, cleanName } from '@/domain/rules/sanitize';
-import type { DateKey, Exercise, ExerciseId, ProgramConfig, ProgramId, ReadinessInput } from '@/domain/types';
+import type { DateKey, Exercise, ExerciseId, ExerciseType, MuscleKey, ProgramConfig, ProgramId, ReadinessInput } from '@/domain/types';
 import { vibrate } from '@/services/feedback';
 import { useTimerStore } from '@/services/timerStore';
 import { showToast, useFeedbackStore } from '@/ui/feedbackStore';
@@ -53,6 +63,14 @@ export interface TodayActions {
   swapTo: (ex: Exercise, target: SwapTarget) => void;
   swapToCustom: (ex: Exercise, name: string) => boolean;
   revert: (ex: Exercise) => void;
+  /** Exercices connus qu'on peut ajouter à la séance du jour. */
+  library: () => LibraryItem[];
+  addKnown: (id: ExerciseId) => boolean;
+  addCustom: (name: string, muscle: MuscleKey, type: ExerciseType) => boolean;
+  /** Retire un exercice ajouté à la volée (tant qu'aucune série n'est validée). */
+  removeAdded: (ex: Exercise) => void;
+  /** Valide une série chronométrée avec la durée réellement tenue. */
+  completeTimedSet: (ex: Exercise, set: SetView, seconds: number) => void;
   openSummary: () => void;
 }
 
@@ -141,34 +159,60 @@ export function useDaySession(
     }, SUMMARY_DELAY_MS);
   }, [date, getData, router, update]);
 
+  const toggleSet = useCallback(
+    (ex: Exercise, set: SetView): void => {
+      const nextDone = !set.done;
+      update((d) =>
+        completeSet(d, {
+          date,
+          exId: ex.id,
+          idx: set.index,
+          done: nextDone,
+          weight: set.weight,
+          reps: set.reps,
+          now: Date.now(),
+        }),
+      );
+      if (!nextDone) return;
+
+      const state = getData().data;
+      const next = supersetNext(state, date, ex.id, set.index);
+      if (next) {
+        showToast(`Superset : enchaîne avec ${next.name}`);
+        setTimeout(() => onReveal(next.id), 150);
+      } else {
+        useTimerStore.getState().start(supersetRest(state, date, ex.id, ex.restSec || 90), ex.name);
+      }
+      if (set.weight) checkRecord(ex, set.weight, set.reps);
+      maybeFinishDay();
+    },
+    [checkRecord, date, getData, maybeFinishDay, onReveal, update],
+  );
+
+  const addToDay = useCallback(
+    (ex: Exercise): boolean => {
+      const result = addDayExercise(getData().data, date, ex);
+      if (!result.ok) {
+        showToast(
+          result.error === 'already-in-day'
+            ? 'Cet exercice est déjà dans la séance'
+            : result.error === 'rest-day'
+              ? "Impossible un jour de repos : choisis d'abord un programme"
+              : 'Exercice invalide',
+        );
+        return false;
+      }
+      update(() => result.data);
+      showToast(`${ex.name} ajouté à la séance`);
+      setTimeout(() => onReveal(ex.id), 250);
+      return true;
+    },
+    [date, getData, onReveal, update],
+  );
+
   const actions = useMemo<TodayActions>(
     () => ({
-      toggleSet: (ex, set) => {
-        const nextDone = !set.done;
-        update((d) =>
-          completeSet(d, {
-            date,
-            exId: ex.id,
-            idx: set.index,
-            done: nextDone,
-            weight: set.weight,
-            reps: set.reps,
-            now: Date.now(),
-          }),
-        );
-        if (!nextDone) return;
-
-        const state = getData().data;
-        const next = supersetNext(state, date, ex.id, set.index);
-        if (next) {
-          showToast(`Superset : enchaîne avec ${next.name}`);
-          setTimeout(() => onReveal(next.id), 150);
-        } else {
-          useTimerStore.getState().start(supersetRest(state, date, ex.id, ex.restSec || 90), ex.name);
-        }
-        if (set.weight) checkRecord(ex, set.weight, set.reps);
-        maybeFinishDay();
-      },
+      toggleSet,
 
       commitWeight: (ex, index, text) => {
         update((d) => setSetField(d, date, ex.id, index, 'weight', text));
@@ -233,9 +277,41 @@ export function useDaySession(
         else if (result.status === 'blocked') showToast('Impossible : une série est déjà validée');
       },
 
+      library: () => exerciseLibrary(getData().data, date),
+
+      addKnown: (id) => {
+        const ex = exerciseTemplate(getData().data, id);
+        return ex ? addToDay(ex) : false;
+      },
+
+      addCustom: (rawName, muscle, type) => {
+        const name = cleanName(rawName);
+        if (!name) {
+          showToast("Donne un nom à l'exercice");
+          return false;
+        }
+        return addToDay(customExercise(name, [muscle], type, Date.now()));
+      },
+
+      removeAdded: (ex) => {
+        const result = removeDayExercise(getData().data, date, ex.id);
+        if (result.ok) {
+          update(() => result.data);
+          showToast(`${ex.name} retiré de la séance`);
+        } else if (result.error === 'has-sets') {
+          showToast('Impossible : une série est déjà validée');
+        }
+      },
+
+      completeTimedSet: (ex, set, seconds) => {
+        const reps = String(Math.max(1, Math.round(seconds)));
+        update((d) => setSetField(d, date, ex.id, set.index, 'reps', reps));
+        if (!set.done) toggleSet(ex, { ...set, reps });
+      },
+
       openSummary: () => router.push(`/summary/${date}`),
     }),
-    [checkRecord, date, getData, maybeFinishDay, onReveal, repsFor, router, update],
+    [addToDay, checkRecord, date, getData, maybeFinishDay, onReveal, repsFor, router, toggleSet, update],
   );
 
   return {

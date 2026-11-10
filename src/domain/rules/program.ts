@@ -5,6 +5,7 @@ import type {
   EffectiveProgram,
   ExDef,
   Exercise,
+  ExerciseId,
   ExerciseType,
   MuscleKey,
   Program,
@@ -207,8 +208,14 @@ export function getEffectiveDayProgram(data: AppData, date: DateKey): EffectiveP
 export function dayExercises(data: AppData, date: DateKey, prog: Program | undefined): Exercise[] {
   if (!prog) return [];
   const swaps = data.swaps[date];
-  return swaps ? prog.exercises.map((ex) => swaps[ex.id] ?? ex) : prog.exercises;
+  const base = swaps ? prog.exercises.map((ex) => swaps[ex.id] ?? ex) : prog.exercises;
+  const added = data.addedExercises[date];
+  return added && added.length ? [...base, ...added] : base;
 }
+
+/** `true` si l'exercice a été ajouté à la volée à la séance de ce jour (et n'appartient pas au programme). */
+export const isAddedExercise = (data: AppData, date: DateKey, exId: ExerciseId): boolean =>
+  Boolean(data.addedExercises[date]?.some((e) => e.id === exId));
 
 export const baseId = (ex: Exercise): string => ex.swappedFrom ?? ex.id;
 

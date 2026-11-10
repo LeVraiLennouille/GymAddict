@@ -6,12 +6,17 @@ import { Badge } from '@/ui/Badge';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
-import { ProgressBar } from '@/ui/ProgressBar';
+import { PlateBar } from '@/ui/PlateBar';
+import { useUnit } from '@/features/shared/useUnit';
 import { Text } from '@/ui/Text';
 import { readinessTone } from '@/domain/rules/readiness';
 
+/** Disques qui se chargent au fil de la séance : les plus lourds d'abord. */
+const HERO_PLATES = { kg: [25, 20, 15, 10, 5, 2.5, 1.25], lb: [45, 35, 25, 10, 5, 2.5] } as const;
+
 export function HeroCard({ view, onChangeProgram }: { view: TodayView; onChangeProgram: () => void }) {
   const { colors } = useTheme();
+  const u = useUnit();
   const color = PROGRAM_HEX[view.program.color];
   const { pct, done, total } = view.progress;
 
@@ -61,7 +66,14 @@ export function HeroCard({ view, onChangeProgram }: { view: TodayView; onChangeP
           {`${done}/${total} séries`}
         </Text>
       </View>
-      <ProgressBar pct={pct} color={color} />
+      <View style={{ marginTop: 10 }}>
+        <PlateBar
+          compact
+          unit={u.unit}
+          plates={HERO_PLATES[u.unit].map((size, i, all) => ({ size, filled: pct >= 100 || i < Math.floor((pct / 100) * all.length) }))}
+          label={`Progression de la séance : ${pct} pour cent`}
+        />
+      </View>
     </Card>
   );
 }

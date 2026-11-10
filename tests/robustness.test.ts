@@ -18,6 +18,8 @@ import { backupStatus, buildBackupFile, extractBackupPayload, mergeAppData, summ
 import { weekDateKeys } from '../src/domain/format/dates';
 import { lineChartGeometry, radarGeometry, weightChartGeometry, barChartGeometry } from '../src/domain/rules/charts';
 import { buildReadiness } from '../src/domain/rules/readiness';
+import { buildPrTimeline } from '../src/domain/rules/statsView';
+import { getEquipment, getUnit, platesFor } from '../src/domain/rules/plates';
 
 const TODAY = '2026-10-28' as DateKey;
 const NOW = new Date(2026, 9, 28, 12, 0, 0);
@@ -80,7 +82,8 @@ const BASE = {
   sessionMeta: { '2026-10-20': { start: 1760000000000, last: 1760003000000, ms: 3000000, prog: { key: 'pecs_tri', name: 'Pectoraux & Triceps' }, prs: [{ id: 'dev_couche', name: 'Développé couché', w: 62.5, r: 8 }], note: 'ok' } },
   readiness: { '2026-10-20': { sleep: 4, stress: 3, soreness: 5, score: 4 } },
   goals: [{ id: 'g_1', type: 'lift', exId: 'dev_couche', target: 80, startDate: '2026-10-01', start: 60 }, { id: 'g_2', type: 'weight', target: 75, startDate: '2026-10-01', start: 82 }],
-  prefs: { sound: true, vibrate: false, reminder: { enabled: true, time: '18:30', days: [1, 3, 5] }, volTargets: { pecs: [10, 20] }, backupSnooze: 1 },
+  addedExercises: { '2026-10-27': [{ id: 'leg_curl', name: 'Leg Curl', sets: 3, repsLabel: '10-12 reps', defaultReps: 11, type: 'isolation', muscles: ['jambes'], restSec: 90 }] },
+  prefs: { unit: 'lb', theme: 'dark', equipment: { lb: { bar: 45, plates: [45, 25, 10, 5, 2.5] } }, sound: true, vibrate: false, reminder: { enabled: true, time: '18:30', days: [1, 3, 5] }, volTargets: { pecs: [10, 20] }, backupSnooze: 1 },
   profile: { pseudo: 'Len', avatar: 'blue', since: '2026-01-01' },
   program: {
     v: 1,
@@ -125,6 +128,8 @@ function exerciseEverything(d: AppData): void {
   summarizeBackup(d);
   buildBackupFile(d, NOW);
   buildReadiness({ sleep: 3, stress: 3, soreness: 3 });
+  buildPrTimeline(d);
+  for (const w of [0, 20, 61.2, 225, 1e6]) platesFor(w, getEquipment(d, getUnit(d)));
   const series = weightChartGeometry(d.weightLog);
   assert.ok(series === null || series.points.length === d.weightLog.length);
   const vals = allExercises(d).slice(0, 5).map((_e, i) => ({ key: TODAY, value: i + 1 }));

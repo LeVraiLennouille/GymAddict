@@ -9,7 +9,7 @@ npm install
 npx expo install --fix     # aligne toutes les dépendances sur la version d'Expo installée
 npm run typecheck          # tsc --noEmit sur l'appli (les tests en sont exclus)
 npm run typecheck:tests    # typage des tests (nécessite @types/node, déjà dans devDependencies)
-npm test                   # 151 tests : règles métier, robustesse, architecture, règles web
+npm test                   # 185 tests : règles métier, robustesse, architecture, règles web
 npm run web                # ou: npm run ios / npm run android
 ```
 
@@ -20,11 +20,12 @@ Expo Go suffit pour les tester, sauf les notifications sur Android récent (util
 
 | Onglet / écran | Contenu |
 |---|---|
-| Séance | Programme du jour, séries, minuteur de repos, records, progression, échauffement, supersets, remplacement d'exercice, check-in « forme du jour », notes, tonnage |
+| Séance | Programme du jour avec barre de plaques qui se charge au fil de la séance, séries, minuteur de repos (capsule avec anneau), records, progression, échauffement, **calculatrice de disques**, supersets, remplacement ou **ajout d'un exercice à la volée**, **chrono pour les exercices chronométrés**, check-in « forme du jour », notes, tonnage |
 | Programme | Semaine type, bilan cardio, détail de chaque jour (modifiable), éditeur de séances / exercices / sorties |
-| Stats | Régularité, objectifs (charge, poids) avec date estimée, calendrier d'activité, évolution des charges, radar musculaire, volume hebdomadaire, poids de corps, records |
+| Stats | Régularité, objectifs (charge, poids) avec date estimée, calendrier d'activité, évolution des charges (max, moyenne, **1RM estimé**, tonnage), **frise des records battus**, radar musculaire, volume hebdomadaire, poids de corps, records |
 | Cardio | Zones de fréquence cardiaque, sorties de la semaine, objectif et allure |
-| Profil | Identité, statistiques, poids et âge, minuteur (son, vibration), rappels, sauvegarde, diagnostic, réinitialisation |
+| Profil | Identité, statistiques, poids et âge, **thème clair / sombre / automatique, unité kg / lb, barre et disques disponibles**, minuteur (son, vibration), rappels, sauvegarde, diagnostic, réinitialisation |
+| Éditeur | Planning, séances, exercices, sorties, **bibliothèque de programmes** (Push/Pull/Legs 3 ou 6 jours, haut/bas, 5×5, full body) importables en un clic |
 | Historique | Toutes les séances par mois, relecture, duplication vers aujourd'hui |
 
 ## Architecture
@@ -64,6 +65,8 @@ ces actions, sans règle métier.
   `AppData` valide. Les clés inconnues sont conservées (`extras`).
 - Un JSON illisible est copié dans `fitcore.corrupt` avant de repartir à vide.
 - Toutes les modifications passent par des actions pures `(AppData, args) => AppData`.
+- Les charges sont **toujours enregistrées en kilogrammes** ; l'unité choisie (kg / lb) ne change que l'affichage et la saisie (`format/units.ts`, `useUnit`).
+- Les exercices ajoutés à la volée sont stockés par date (`addedExercises`) : ils n'altèrent pas le programme.
 - Sauvegarde : fichier JSON (enveloppe `GymAddict` validée avec Zod, ou ancien export brut).
   Import par **fusion** (rien d'existant n'est écrasé, meilleur record conservé) ou **remplacement** ;
   une copie de l'état précédent est gardée dans `fitcore.before-import`.

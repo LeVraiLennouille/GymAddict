@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { fmtKg } from '@/domain/format/numbers';
+import { useUnit, type UnitFormatter } from '@/features/shared/useUnit';
 import type { GoalInput } from '@/domain/actions/goals';
 import { goalCurrent, type GoalRow } from '@/domain/rules/goals';
 import type { AppData, ExerciseId, Goal } from '@/domain/types';
@@ -32,18 +32,19 @@ interface Draft {
 
 const NEW_DRAFT: Draft = { type: 'lift', exId: '', target: '' };
 
-function currentText(data: AppData, draft: Draft): string {
+function currentText(data: AppData, draft: Draft, u: UnitFormatter): string {
   if (draft.type === 'weight') {
     const cur = goalCurrent(data, { type: 'weight' });
-    return cur !== null ? `Poids actuel : ${fmtKg(cur)} kg` : 'Aucune pesée enregistrée : ajoute-en une plus bas.';
+    return cur !== null ? `Poids actuel : ${u.withUnit(cur)}` : 'Aucune pesée enregistrée : ajoute-en une plus bas.';
   }
-  return draft.exId ? `Record actuel : ${fmtKg(goalCurrent(data, { type: 'lift', exId: draft.exId }) ?? 0)} kg` : '';
+  return draft.exId ? `Record actuel : ${u.withUnit(goalCurrent(data, { type: 'lift', exId: draft.exId }) ?? 0)}` : '';
 }
 
 /** Objectifs de charge et de poids, avec progression et date estimée d'arrivée. */
 export function GoalsCard({ rows, exercises, onSave, onDelete }: Props) {
   const { colors } = useTheme();
   const data = useAppStore((s) => s.data);
+  const u = useUnit();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -68,7 +69,7 @@ export function GoalsCard({ rows, exercises, onSave, onDelete }: Props) {
           key={row.goal.id}
           accessibilityRole="button"
           accessibilityLabel={`Objectif ${row.name}`}
-          onPress={() => setDraft({ id: row.goal.id, type: row.goal.type, exId: row.goal.exId ?? '', target: String(row.goal.target) })}
+          onPress={() => setDraft({ id: row.goal.id, type: row.goal.type, exId: row.goal.exId ?? '', target: String(u.convert(row.goal.target)).replace('.', ',') })}
           style={{ backgroundColor: colors.card2, borderRadius: 16, padding: 14, marginBottom: 10 }}
         >
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -79,7 +80,7 @@ export function GoalsCard({ rows, exercises, onSave, onDelete }: Props) {
               </Text>
             </View>
             <Text size={13} weight={700}>
-              {`${row.progress.cur === null ? '—' : fmtKg(row.progress.cur)} → ${fmtKg(row.goal.target)} kg`}
+              {`${row.progress.cur === null ? '—' : u.num(row.progress.cur)} → ${u.withUnit(row.goal.target)}`}
             </Text>
           </View>
           <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, marginVertical: 10, overflow: 'hidden' }}>
@@ -123,11 +124,11 @@ export function GoalsCard({ rows, exercises, onSave, onDelete }: Props) {
             ) : null}
 
             <Text size={13} tone="dim" style={{ marginVertical: 10 }}>
-              {currentText(data, draft)}
+              {currentText(data, draft, u)}
             </Text>
 
             <Text size={10} weight={600} tone="muted" style={{ marginBottom: 6 }}>
-              CIBLE (KG)
+              {`CIBLE (${u.unit.toUpperCase()})`}
             </Text>
             <CommitInput
               variant="big"
@@ -135,7 +136,7 @@ export function GoalsCard({ rows, exercises, onSave, onDelete }: Props) {
               value={draft.target}
               placeholder="100"
               style={{ width: '100%' }}
-              accessibilityLabel="Cible en kilos"
+              accessibilityLabel={`Cible en ${u.unit === 'kg' ? 'kilos' : 'livres'}`}
               onCommit={(target) => setDraft((d) => (d ? { ...d, target } : d))}
               onLiveChange={(target) => setDraft((d) => (d ? { ...d, target } : d))}
             />
@@ -163,7 +164,7 @@ export function GoalsCard({ rows, exercises, onSave, onDelete }: Props) {
                 variant="green"
                 style={{ flex: 1, alignSelf: 'stretch' }}
                 onPress={() => {
-                  const input: GoalInput = { type: draft.type, target: draft.target };
+                  const input: GoalInput = { type: draft.type, target: u.fromInput(draft.target) };
                   if (draft.id) input.id = draft.id;
                   if (draft.type === 'lift' && draft.exId) input.exId = draft.exId;
                   if (onSave(input)) close();

@@ -6,6 +6,8 @@ const TIMER_KEY = 'fitcore.timer';
 interface TimerState {
   /** Fin du repos (timestamp ms) ; `null` si aucun minuteur. */
   endAt: number | null;
+  /** Durée totale du repos en cours, rallonges comprises (secondes) : sert à dessiner l'anneau. */
+  totalSec: number;
   label: string;
   start: (seconds: number, label: string) => void;
   add: (seconds: number) => void;
@@ -14,27 +16,28 @@ interface TimerState {
   restore: () => Promise<void>;
 }
 
-const persist = (endAt: number, label: string): void => {
-  void writeKey(TIMER_KEY, JSON.stringify({ end: endAt, name: label }));
+const persist = (endAt: number, label: string, total: number): void => {
+  void writeKey(TIMER_KEY, JSON.stringify({ end: endAt, name: label, total }));
 };
 
 export const useTimerStore = create<TimerState>((set, get) => ({
   endAt: null,
+  totalSec: 0,
   label: 'Repos',
 
   start: (seconds, label) => {
     const endAt = Date.now() + seconds * 1000;
     const name = label || 'Repos';
-    set({ endAt, label: name });
-    persist(endAt, name);
+    set({ endAt, label: name, totalSec: seconds });
+    persist(endAt, name, seconds);
   },
 
   add: (seconds) => {
-    const { endAt, label } = get();
+    const { endAt, label, totalSec } = get();
     if (endAt === null) return;
     const next = endAt + seconds * 1000;
-    set({ endAt: next });
-    persist(next, label);
+    set({ endAt: next, totalSec: totalSec + seconds });
+    persist(next, label, totalSec + seconds);
   },
 
   dismiss: () => {
@@ -46,13 +49,15 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const raw = await readKey(TIMER_KEY);
     if (!raw) return;
     try {
-      const saved = JSON.parse(raw) as { end?: unknown; name?: unknown };
+      const saved = JSON.parse(raw) as { end?: unknown; name?: unknown; total?: unknown };
       const end = typeof saved.end === 'number' ? saved.end : 0;
       if (end <= Date.now()) {
         await removeKey(TIMER_KEY);
         return;
       }
-      set({ endAt: end, label: typeof saved.name === 'string' && saved.name ? saved.name : 'Repos' });
+      const left = remainingSeconds(end);
+      const total = typeof saved.total === 'number' && saved.total >= left ? saved.total : left;
+      set({ endAt: end, totalSec: total, label: typeof saved.name === 'string' && saved.name ? saved.name : 'Repos' });
     } catch {
       await removeKey(TIMER_KEY);
     }

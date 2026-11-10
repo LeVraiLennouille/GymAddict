@@ -50,13 +50,13 @@ export function PrPopupHost() {
               {info.name}
             </Text>
             <Text weight={700} size={18} color="#FFFFFF" style={{ marginTop: 4 }}>
-              {`${fmtKg(info.weight)} kg`}
+              {`${fmtKg(info.weight)} ${info.unit}`}
               {info.reps ? ` × ${info.reps} reps` : ''}
             </Text>
             {info.oneRm !== null ? (
               <View style={{ marginTop: 12 }}>
                 <Text size={12} tone="dim" style={{ marginBottom: 8 }}>
-                  {`1RM Brzycki : ${fmtKg(info.oneRm)} kg`}
+                  {`1RM Brzycki : ${fmtKg(info.oneRm)} ${info.unit}`}
                   {info.bodyRatio !== null ? ` · ${fmtKg(info.bodyRatio)}× poids du corps` : ''}
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>

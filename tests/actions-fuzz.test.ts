@@ -16,6 +16,11 @@ import * as V from '../src/domain/actions/volume';
 import * as H from '../src/domain/actions/history';
 import * as E from '../src/domain/actions/program';
 import * as R from '../src/domain/actions/reminders';
+import * as X from '../src/domain/actions/exercises';
+import * as S from '../src/domain/actions/settings';
+import { applyTemplate } from '../src/domain/actions/templates';
+import { PROGRAM_TEMPLATES } from '../src/domain/defaults/templates';
+import { exerciseTemplate, customExercise } from '../src/domain/rules/swap';
 import { markBackedUp, snoozeBackup } from '../src/domain/rules/backup';
 import { emptyAppData } from '../src/domain/rules/appData';
 import { addDays } from '../src/domain/format/dates';
@@ -160,10 +165,31 @@ const OPS: Record<string, Op> = {
     return mergeAppData(d, other).data;
   },
   reset: (d) => P.resetAllData(d, TODAY),
+  addDayExercise: (d, r, n) => {
+    const known = Object.keys(d.exDefs);
+    const ex = r() < 0.5 && known.length ? exerciseTemplate(d, pick(r, known)) : customExercise(pick(r, WORDS), [pick(r, MUSCLES)], pick(r, TYPES), n + 7000);
+    if (!ex) return d;
+    const res = X.addDayExercise(d, date(r), ex);
+    return res.ok ? res.data : d;
+  },
+  removeDayExercise: (d, r) => {
+    const dates = Object.keys(d.addedExercises) as DateKey[];
+    const dt = dates[Math.floor(r() * dates.length)];
+    const ex = dt ? d.addedExercises[dt]?.[0] : undefined;
+    if (!dt || !ex) return d;
+    const res = X.removeDayExercise(d, dt, ex.id);
+    return res.ok ? res.data : d;
+  },
+  unit: (d, r) => S.setUnit(d, pick(r, ['kg', 'lb'] as const)),
+  theme: (d, r) => S.setThemeMode(d, pick(r, ['system', 'light', 'dark'] as const)),
+  bar: (d, r) => S.setBarWeight(d, pick(r, ['kg', 'lb'] as const), pick(r, [0, 15, 20, 45, 101, -1])),
+  plate: (d, r) => S.togglePlate(d, pick(r, ['kg', 'lb'] as const), pick(r, [25, 20, 2.5, 1.25, 45, 0, 200])),
+  resetEquip: (d, r) => S.resetEquipment(d, pick(r, ['kg', 'lb'] as const)),
+  template: (d, r) => applyTemplate(d, pick(r, PROGRAM_TEMPLATES), pick(r, ['add', 'replace'] as const)).data,
 };
 
 /** Champs dont la valeur doit survivre telle quelle à un enregistrement puis un rechargement. */
-const PERSISTED: (keyof AppData)[] = ['workouts', 'runLogs', 'prs', 'activeDays', 'weightLog', 'exNotes', 'dayProgram', 'dayOrder', 'skipped', 'swaps', 'sessionMeta', 'readiness', 'goals', 'prefs', 'profile', 'program', 'age', 'bodyWeight', 'lastBackup'];
+const PERSISTED: (keyof AppData)[] = ['addedExercises', 'workouts', 'runLogs', 'prs', 'activeDays', 'weightLog', 'exNotes', 'dayProgram', 'dayOrder', 'skipped', 'swaps', 'sessionMeta', 'readiness', 'goals', 'prefs', 'profile', 'program', 'age', 'bodyWeight', 'lastBackup'];
 
 describe('actions : suites d\'opérations aléatoires', () => {
   it('aucune exception et tout ce qui est enregistré survit à un rechargement', () => {
