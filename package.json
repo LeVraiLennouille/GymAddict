@@ -15,8 +15,9 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "latest",
-    "expo": "latest",
-    "expo-audio": "latest",
+    "expo": "~58.0.23",
+    "expo-asset": "~58.0.20",
+    "expo-audio": "^58.0.11",
     "expo-blur": "latest",
     "expo-constants": "latest",
     "expo-document-picker": "latest",
@@ -24,16 +25,16 @@
     "expo-font": "latest",
     "expo-haptics": "latest",
     "expo-keep-awake": "latest",
-    "expo-linking": "latest",
-    "expo-notifications": "latest",
-    "expo-router": "latest",
-    "expo-sharing": "latest",
-    "expo-splash-screen": "latest",
+    "expo-linking": "~58.0.16",
+    "expo-notifications": "~58.1.8",
+    "expo-router": "~58.0.30",
+    "expo-sharing": "~58.0.22",
+    "expo-splash-screen": "~58.0.13",
     "expo-status-bar": "latest",
     "react": "latest",
     "react-dom": "latest",
     "react-native": "latest",
-    "react-native-safe-area-context": "latest",
+    "react-native-safe-area-context": "~5.11.1",
     "react-native-screens": "latest",
     "react-native-svg": "latest",
     "react-native-web": "latest",
@@ -41,9 +42,9 @@
     "zustand": "latest"
   },
   "devDependencies": {
+    "@types/node": "latest",
     "@types/react": "latest",
     "tsx": "latest",
-    "typescript": "latest",
-    "@types/node": "latest"
+    "typescript": "latest"
   }
 }
